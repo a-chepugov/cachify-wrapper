@@ -5,7 +5,7 @@ const {
 		Promise: {sleep, promisify},
 		Number: {random}
 	}
-} = require('helpers-js');
+} = require('../helpers');
 
 /**
  * Wrap function with caching layer
