@@ -3,7 +3,7 @@ const tested = require('./index');
 
 describe('cachify-wrapper', async function () {
 
-	describe('redis', async function () {
+	describe.skip('redis', async function () {
 
 		const redis = require('redis');
 
