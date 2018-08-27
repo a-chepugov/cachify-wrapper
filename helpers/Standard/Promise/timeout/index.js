@@ -14,8 +14,8 @@ module.exports = (promise, timeout, error) =>
 		promise,
 		new Promise((resolve, reject) => {
 			const id = setTimeout(() => {
-				clearTimeout(id);
 				reject(error);
+				clearTimeout(id);
 			}, timeout);
 		})
 	]);

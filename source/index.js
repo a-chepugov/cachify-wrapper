@@ -76,7 +76,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	const cacheGet_ = promisify(cache.get, cache);
 
 	const cacheGet = timeout ?
-		(key) => promiseTimeout(cacheGet_(key), timeout) :
+		(key) => promiseTimeout(cacheGet_(key), timeout, new Error('Cache read timeout')) :
 		cacheGet_;
 
 	const cacheLock = lockTimeout === Infinity ?
@@ -92,9 +92,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 				return response.payload;
 			}
 		}
-		const error = new Error(key);
-		error.code = 'ETIMEDOUT';
-		throw error;
+		throw new Error(`Cache read locked: ${key}`);
 	};
 
 	const handleResponse = (stale || ttl === Infinity) ?
@@ -132,9 +130,10 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 					return payload;
 				} else {
 					return response === lockPlaceholder ?
-						getOnLock(key).catch(() =>
-							Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
-								.then(([response]) => handleResponse(key, response))) :
+						getOnLock(key).catch(console.error)
+							.then(() =>
+								Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
+									.then(([response]) => handleResponse(key, response))) :
 						Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
 							.then(([response]) => handleResponse(key, response));
 				}
