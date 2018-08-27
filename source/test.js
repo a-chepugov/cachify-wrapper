@@ -35,6 +35,26 @@ describe('cachify-wrapper', async function () {
 			}
 		}
 
+		class InMemoryStorageErrorReadWrapper extends InMemoryStorageWrapper {
+			constructor() {
+				super();
+			}
+
+			get(key) {
+				throw new Error('get error');
+			}
+		}
+
+		class InMemoryStorageErrorWriteWrapper extends InMemoryStorageWrapper {
+			constructor() {
+				super();
+			}
+
+			set(key) {
+				throw new Error('set error');
+			}
+		}
+
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
 
 		it('hasher', async function () {
@@ -192,6 +212,27 @@ describe('cachify-wrapper', async function () {
 				.then((payload) => expect(payload).to.equal(246));
 		});
 
-	});
+		it('cache. read fail', async function () {
+			const cache = new InMemoryStorageErrorReadWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
 
+			const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
+			const cached = tested(fn, cache, options);
+
+			return cached(125).then((payload) => expect(payload).to.equal(250))
+				.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
+		});
+
+		it('cache. write fail', async function () {
+			const cache = new InMemoryStorageErrorWriteWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+
+			const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
+			const cached = tested(fn, cache, options);
+
+			return cached(125).then((payload) => expect(payload).to.equal(250))
+				.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
+		});
+
+	});
 });
