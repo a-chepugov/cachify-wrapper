@@ -97,11 +97,11 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	const handleResponse = (stale || ttl === Infinity) ?
 		(key, payload) => {
-			cacheSet(key, {payload, timestamp: Date.now()});
+			cacheSet(key, {payload, timestamp: Date.now()}).catch(console.error);
 			return payload;
 		} :
 		(key, payload) => {
-			cacheSet(key, {payload, timestamp: Date.now()}, Math.floor(ttl + random(0, deviation)));
+			cacheSet(key, {payload, timestamp: Date.now()}, Math.floor(ttl + random(0, deviation))).catch(console.error);
 			return payload;
 		};
 
