@@ -76,7 +76,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	const cacheGet_ = promisify(cache.get, cache);
 
 	const cacheGet = timeout ?
-		(key) => promiseTimeout(cacheGet_(key), timeout, 'cache failed') :
+		(key) => promiseTimeout(cacheGet_(key), timeout) :
 		cacheGet_;
 
 	const cacheLock = lockTimeout === Infinity ?
@@ -116,7 +116,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	return function () {
 		const key = hasher.apply(thisArg, arguments);
 
-		return cacheGet(key).catch()
+		return cacheGet(key).catch(new Function())
 			.then((response) => {
 				const {payload} = response || {};
 
