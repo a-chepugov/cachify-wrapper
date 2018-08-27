@@ -116,7 +116,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	return function () {
 		const key = hasher.apply(thisArg, arguments);
 
-		return cacheGet(key).catch(new Function())
+		return cacheGet(key).catch(console.error)
 			.then((response) => {
 				const {payload} = response || {};
 
