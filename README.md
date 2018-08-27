@@ -6,21 +6,21 @@ Wrap function with caching layer
 
 **Parameters**
 
--   `fn` **[Object][1]** 
--   `cache` **[Object][1]** CacheInterface for KVStorage (must provide set, get & expire methods)
--   `options` **[Object][1]?** 
-    -   `options.expire` **([Number][2] \| [Object][1])?** key expire options
-        -   `options.expire.ttl` **[Number][2]** cached data ttl (optional, default `Infinity`)
-        -   `options.expire.deviation` **[Number][2]** expire deviation (optional, default `options.expire.ttl/100`)
-    -   `options.lock` **[Object][1]?** lock similar initial request to data source
-        -   `options.lock.timeout` **[Number][2]** lock timeout (optional, default `1000`)
-        -   `options.lock.placeholder` **[String][3]** lock placeholder (optional, default `'?'`)
-    -   `options.latency` **[Number][2]** time to awaiting responce from source (optional, default `options.lock.timeout`)
-    -   `options.retries` **[Number][2]** multiplier for `options.latency` to awaiting response from source before new call (optional, default `3`)
-    -   `options.prefix` **[String][3]** prefix for `cache` KVStorage keys (optional, default `''`)
-    -   `options.stale` **([Boolean][4] \| [Object][1])?** allow to use a stale data
-        -   `options.stale.lock` **[Number][2]** lock timout for updating stale data (optional, default `options.retries*options.latency`)
-    -   `options.hasher` **[Function][5]** function for creating key for KV-storage (optional, default `JSON.stringify`)
+-   `fn` **[Function][1]** 
+-   `cache` **[Object][2]** KVStorage interface [must provide set(key, value, expired) and get(key) methods]
+-   `options` **[Object][2]?** 
+    -   `options.expire` **([Number][3] \| [Object][2])?** key expire options
+        -   `options.expire.ttl` **[Number][3]** cached data ttl (in milliseconds) (optional, default `1000`)
+        -   `options.expire.deviation` **[Number][3]** expire deviation (in milliseconds) (optional, default `options.expire.ttl/100`)
+    -   `options.lock` **[Object][2]?** lock similar initial request to data source
+        -   `options.lock.timeout` **[Number][3]** lock timeout  (in milliseconds) (optional, default `1000`)
+        -   `options.lock.placeholder` **[String][4]** lock placeholder (optional, default `'?'`)
+    -   `options.stale` **([Boolean][5] \| [Object][2])?** allow to use a stale data
+        -   `options.stale.lock` **[Number][3]** lock timeout for updating stale data (in milliseconds) (optional, default `options.lock.timeout`)
+    -   `options.hasher` **[Function][1]** creates key for KV-storage by `fn` arguments (optional, default `JSON.stringify`)
+    -   `options.timeout` **[Number][3]?** max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
+    -   `options.latency` **[Number][3]** expected source response time  (in milliseconds). With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
+    -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
 
 **Examples**
 
@@ -29,33 +29,136 @@ const wrapper = require('cachify-wrapper');
 const redis = require('redis');
 class RedisCache {
  constructor() {
-  const client = redis.createClient();
-  this.set = (key, value) => new Promise((resolve, reject) => client.set(key, JSON.stringify(value), (error, value) => error ? reject(error) : resolve(value)));
-  this.get = (key) => new Promise((resolve, reject) => client.get(key, (error, value) => error ? reject(error) : resolve(JSON.parse(value))));
-  this.expire = (key, expire) => new Promise((resolve, reject) => client.pexpire(key, expire, (error) => error ? reject(error) : resolve()));
+  this.client = redis.createClient();
+ }
+ set (key, value, expire) {
+  return new Promise((resolve, reject) => this.client.set(key, JSON.stringify(value), (error, value) => error ? reject(error) :
+    expire ? this.client.pexpire(key, expire, (error) => error ? reject(error) : resolve(value)) :
+    resolve(value)));
+ }
+ get (key) {
+  return new Promise((resolve, reject) => this.client.get(key, (error, value) => error ? reject(error) : resolve(JSON.parse(value))));
  }
 }
 const cache = new RedisCache();
-const sourceFunc = (a) => new Promise((resolve, reject) => setTimeout(() => resolve({data: a}), 2000));
-const options = {expire: {ttl: 5000}, lock: {timeout: 5000, placeholder: '???'}, latency: 1000, retries: 3, prefix: '__sourceFunc__:'};
-const cachified = wrapper(sourceFunc, cache, options);
-cachified('123').then((payload) => console.dir(payload, {colors: true, depth: null}));
-setTimeout(() => cachified('123').then((payload) => console.dir(payload, {colors: true, depth: null})), 1500);
-setTimeout(() => cachified('123').then((payload) => console.dir(payload, {colors: true, depth: null})), 2100);
+const sourceFunc = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
+const options = {expire: {ttl: 500}, lock: {timeout: 100, placeholder: '???'}, latency: 100, retries: 1};
+const cached = wrapper(sourceFunc, cache, options);
+cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})); // Invoke new request
+setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
+setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 50); // Will invoke new actual request (because of low retries & latency options it can't wait for first invoke cache)
 ```
 
-Returns **[Function][5]** wrapped function
+Returns **[Function][1]** wrapped function
 
 ## Installation
 
 npm install --save cachify-wrapper
 
-[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+## Standard/Map
 
-[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+### InMemoryStorage
 
-[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+**Parameters**
 
-[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+-   `source` **Iterable** iterable source of key-value pairs
 
-[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+## set
+
+**Parameters**
+
+-   `key` **any** 
+-   `value` **any** 
+
+## has
+
+**Parameters**
+
+-   `key` **any** 
+
+Returns **[Boolean][5]** 
+
+## get
+
+**Parameters**
+
+-   `key` **any** 
+
+Returns **(any | [undefined][6])** 
+
+## del
+
+**Parameters**
+
+-   `key` **any** 
+
+Returns **[Boolean][5]** 
+
+## expire
+
+**Parameters**
+
+-   `key` **any** 
+-   `expire` **[Number][3]** expire time in milliseconds
+
+## Standard/Number
+
+### random
+
+Returns random number between `a` and `b`
+
+**Parameters**
+
+-   `a` **[Number][3]** 
+-   `b` **[Number][3]** 
+
+Returns **[Number][3]** 
+
+## Standard/Promise
+
+### promisify
+
+Wrap function with a Promise and call it in async manner
+
+**Parameters**
+
+-   `fn` **[Function][1]** 
+-   `thisArg` **any** context for `fn`
+
+Returns **[Function][1]&lt;[Promise][7]>** 
+
+### sleep
+
+**Parameters**
+
+-   `timeout` **[Number][3]** 
+
+Returns **[Promise][7]&lt;any>** 
+
+### timeout
+
+Wrap promise with a timeout
+
+**Parameters**
+
+-   `promise` **[Promise][7]** promise needs to be to resolve
+-   `timeout` **[Number][3]** time interval in milliseconds before reject will be raised
+-   `error` **[Error][8]** error with which reject will be raised
+
+Returns **[Promise][7]** 
+
+[1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
+
+[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
+
+[7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
+
+[8]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error

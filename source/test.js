@@ -25,6 +25,16 @@ describe('cachify-wrapper', async function () {
 			}
 		}
 
+		class InMemoryStorageDelayWrapper extends InMemoryStorageWrapper {
+			constructor() {
+				super();
+			}
+
+			get(key) {
+				return new Promise((resolve) => setTimeout(() => resolve(this.cache.get(key)), 100));
+			}
+		}
+
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
 
 		it('hasher', async function () {
@@ -158,6 +168,28 @@ describe('cachify-wrapper', async function () {
 
 				setTimeout(() => resolve(), 300);
 			});
+		});
+
+		it('timeout. fail', async function () {
+			const cache = new InMemoryStorageDelayWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+
+			const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
+			const cached = tested(fn, cache, options);
+
+			return cached(123)
+				.catch(() => expect(true).to.equal(true));
+		});
+
+		it('timeout. success', async function () {
+			const cache = new InMemoryStorageDelayWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+
+			const options = {expire: {ttl: 250}, timeout: 150, latency: 50, retries: 1};
+			const cached = tested(fn, cache, options);
+
+			return cached(123)
+				.then((payload) => expect(payload).to.equal(246));
 		});
 
 	});

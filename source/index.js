@@ -2,7 +2,7 @@
 
 const {
 	Standard: {
-		Promise: {sleep, promisify},
+		Promise: {sleep, promisify, timeout: promiseTimeout},
 		Number: {random}
 	}
 } = require('../helpers');
@@ -10,19 +10,20 @@ const {
 /**
  * Wrap function with caching layer
  * @name cachify-wrapper
- * @param {Object} fn
+ * @param {Function} fn
  * @param {Object} cache - KVStorage interface [must provide set(key, value, expired) and get(key) methods]
  * @param {Object} [options]
  * @param {Number|Object} [options.expire] - key expire options
- * @param {Number} [options.expire.ttl=1000] - cached data ttl in milliseconds
- * @param {Number} [options.expire.deviation=options.expire.ttl/100] - expire deviation in milliseconds
+ * @param {Number} [options.expire.ttl=1000] - cached data ttl (in milliseconds)
+ * @param {Number} [options.expire.deviation=options.expire.ttl/100] - expire deviation (in milliseconds)
  * @param {Object} [options.lock] - lock similar initial request to data source
- * @param {Number} [options.lock.timeout=1000] - lock timeout in milliseconds
+ * @param {Number} [options.lock.timeout=1000] - lock timeout  (in milliseconds)
  * @param {String} [options.lock.placeholder='?'] - lock placeholder
  * @param {Boolean|Object} [options.stale] - allow to use a stale data
- * @param {Number} [options.stale.lock=options.lock.timeout] - lock timeout for updating stale data in milliseconds
+ * @param {Number} [options.stale.lock=options.lock.timeout] - lock timeout for updating stale data (in milliseconds)
  * @param {Function} [options.hasher=JSON.stringify] - creates key for KV-storage by `fn` arguments
- * @param {Number} [options.latency=options.lock.timeout] - expected source response time (with `options.retries` affect on awaiting for duplicate requests for first request result) in milliseconds
+ * @param {Number} [options.timeout] - max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
+ * @param {Number} [options.latency=options.lock.timeout] - expected source response time  (in milliseconds). With `options.retries` affect on awaiting for duplicate requests for first request result
  * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
  * @return {Function} wrapped function
  * @example
@@ -33,8 +34,7 @@ const {
  *   this.client = redis.createClient();
  *  }
  *  set (key, value, expire) {
- *   return new Promise((resolve, reject) =>
- *    this.client.set(key, JSON.stringify(value), (error, value) => error ? reject(error) :
+ *   return new Promise((resolve, reject) => this.client.set(key, JSON.stringify(value), (error, value) => error ? reject(error) :
  *     expire ? this.client.pexpire(key, expire, (error) => error ? reject(error) : resolve(value)) :
  *     resolve(value)));
  *  }
@@ -69,12 +69,16 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	staleLock = staleLock && Number.isFinite(staleLock) && staleLock > 0 ? staleLock : lockTimeout;
 
-	prefix = typeof prefix === 'string' || prefix instanceof String ? prefix : '';
+	timeout = Number.isFinite(timeout) && timeout > 0 ? timeout : undefined;
 
 	const promisifiedFN = promisify(fn);
 
 	const cacheSet = promisify(cache.set, cache);
-	const cacheGet = promisify(cache.get, cache);
+	const cacheGet_ = promisify(cache.get, cache);
+
+	const cacheGet = timeout ?
+		(key) => promiseTimeout(cacheGet_(key), timeout, 'cache failed') :
+		cacheGet_;
 
 	const cacheLock = lockTimeout === Infinity ?
 		(key) => cacheSet(key, lockPlaceholder) :
