@@ -27,14 +27,14 @@ describe('cachify-wrapper', async function () {
 
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
 
-		it('hasher & prefix', async function () {
+		it('hasher', async function () {
 			const cache = new InMemoryStorageWrapper();
-			const options = {expire: {ttl: Infinity}, prefix: 'key->', hasher: (a, prefix) => prefix + a[0] + '___'};
+			const options = {expire: {ttl: Infinity}, hasher: (a) => a[0] + '___'};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve, reject) => {
 				cached(123).catch()
-					.then(() => expect(cache.cache.has('key->123___')).to.equal(true))
+					.then(() => expect(cache.cache.has('123___')).to.equal(true))
 					.then(() => resolve()).catch((error) => reject(error));
 			});
 		});

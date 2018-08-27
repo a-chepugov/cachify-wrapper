@@ -11,7 +11,7 @@ const {
  * Wrap function with caching layer
  * @name cachify-wrapper
  * @param {Object} fn
- * @param {Object} cache - KVStorage [must provide set(key, value, expired), get(key) methods]
+ * @param {Object} cache - KVStorage interface [must provide set(key, value, expired) and get(key) methods]
  * @param {Object} [options]
  * @param {Number|Object} [options.expire] - key expire options
  * @param {Number} [options.expire.ttl=1000] - cached data ttl in milliseconds
@@ -21,8 +21,7 @@ const {
  * @param {String} [options.lock.placeholder='?'] - lock placeholder
  * @param {Boolean|Object} [options.stale] - allow to use a stale data
  * @param {Number} [options.stale.lock=options.lock.timeout] - lock timeout for updating stale data in milliseconds
- * @param {Function} [options.hasher=JSON.stringify] - creating key for KV-storage function
- * @param {String} [options.prefix=''] - prefix for keys in KVStorage
+ * @param {Function} [options.hasher=JSON.stringify] - creates key for KV-storage by `fn` arguments
  * @param {Number} [options.latency=options.lock.timeout] - expected source response time (with `options.retries` affect on awaiting for duplicate requests for first request result) in milliseconds
  * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
  * @return {Function} wrapped function
@@ -31,34 +30,27 @@ const {
  * const redis = require('redis');
  * class RedisCache {
  *  constructor() {
- *   const client = redis.createClient();
- *   this.set = (key, value, expire) =>
- *    new Promise((resolve, reject) =>
- *     client.set(key, JSON.stringify(value),
- *      (error, value) =>
- *       error ?
- *        reject(error) :
- *         expire ?
- *          client.pexpire(key, expire, (error) => error ? reject(error) : resolve(value)) :
- *          resolve(value)));
- *
- *   this.get = (key) =>
- *    new Promise((resolve, reject) =>
- *     client.get(key, (error, value) =>
- *      error ?
- *       reject(error) :
- *       resolve(JSON.parse(value))));
+ *   this.client = redis.createClient();
+ *  }
+ *  set (key, value, expire) {
+ *   return new Promise((resolve, reject) =>
+ *    this.client.set(key, JSON.stringify(value), (error, value) => error ? reject(error) :
+ *     expire ? this.client.pexpire(key, expire, (error) => error ? reject(error) : resolve(value)) :
+ *     resolve(value)));
+ *  }
+ *  get (key) {
+ *   return new Promise((resolve, reject) => this.client.get(key, (error, value) => error ? reject(error) : resolve(JSON.parse(value))));
  *  }
  * }
  * const cache = new RedisCache();
  * const sourceFunc = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
- * const options = {expire: {ttl: 500}, lock: {timeout: 100, placeholder: '???'}, latency: 100, retries: 1, prefix: '__sourceFunc__:'};
+ * const options = {expire: {ttl: 500}, lock: {timeout: 100, placeholder: '???'}, latency: 100, retries: 1};
  * const cached = wrapper(sourceFunc, cache, options);
  * cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})); // Invoke new request
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 50); // Will invoke new actual request (because of low retries & latency options it can't wait for first invoke cache)
  */
-module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout: lockTimeout, placeholder: lockPlaceholder} = {}, stale: {lock: staleLock} = {}, stale, hasher, prefix = '', latency, retries} = {}) {
+module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout: lockTimeout, placeholder: lockPlaceholder} = {}, stale: {lock: staleLock} = {}, stale, hasher, timeout, latency, retries} = {}) {
 	ttl = Number.isFinite(ttl) ?
 		ttl > 0 ?
 			ttl :
@@ -114,10 +106,10 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	hasher = hasher ?
 		hasher :
-		(a, prefix) => prefix + JSON.stringify(a);
+		(a) => JSON.stringify(a);
 
 	return function () {
-		const key = hasher(arguments, prefix);
+		const key = hasher(arguments);
 
 		return cacheGet(key).catch()
 			.then((response) => {
