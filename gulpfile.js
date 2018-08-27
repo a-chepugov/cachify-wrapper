@@ -16,14 +16,14 @@ gulp.task('clean', () => {
 gulp.task('docs:md', function () {
 	const gulpDocumentation = require('gulp-documentation');
 	return gulp.src(paths.source)
-		.pipe(gulpDocumentation('md', {}, {name, version}))
+		.pipe(gulpDocumentation('md', {shallow: true}, {name, version}))
 		.pipe(gulp.dest(paths.doc));
 });
 
 gulp.task('docs:html', function () {
 	const gulpDocumentation = require('gulp-documentation');
 	return gulp.src(paths.source)
-		.pipe(gulpDocumentation('html', {}, {name, version}))
+		.pipe(gulpDocumentation('html', {shallow: true}, {name, version}))
 		.pipe(gulp.dest(paths.doc));
 });
 

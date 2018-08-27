@@ -2,7 +2,7 @@
 
 ## cachify-wrapper
 
-Wrap function with caching layer
+Wraps a function with a caching layer
 
 **Parameters**
 
@@ -21,6 +21,7 @@ Wrap function with caching layer
     -   `options.timeout` **[Number][3]?** max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
     -   `options.latency` **[Number][3]** expected source response time  (in milliseconds). With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
     -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
+-   `thisArg` **any** context for `fn` and `options.hasher`
 
 **Examples**
 
@@ -51,102 +52,6 @@ setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: tru
 
 Returns **[Function][1]** wrapped function
 
-## Installation
-
-npm install --save cachify-wrapper
-
-## Standard/Map
-
-### InMemoryStorage
-
-**Parameters**
-
--   `source` **Iterable** iterable source of key-value pairs
-
-## set
-
-**Parameters**
-
--   `key` **any** 
--   `value` **any** 
-
-## has
-
-**Parameters**
-
--   `key` **any** 
-
-Returns **[Boolean][5]** 
-
-## get
-
-**Parameters**
-
--   `key` **any** 
-
-Returns **(any | [undefined][6])** 
-
-## del
-
-**Parameters**
-
--   `key` **any** 
-
-Returns **[Boolean][5]** 
-
-## expire
-
-**Parameters**
-
--   `key` **any** 
--   `expire` **[Number][3]** expire time in milliseconds
-
-## Standard/Number
-
-### random
-
-Returns random number between `a` and `b`
-
-**Parameters**
-
--   `a` **[Number][3]** 
--   `b` **[Number][3]** 
-
-Returns **[Number][3]** 
-
-## Standard/Promise
-
-### promisify
-
-Wrap function with a Promise and call it in async manner
-
-**Parameters**
-
--   `fn` **[Function][1]** 
--   `thisArg` **any** context for `fn`
-
-Returns **[Function][1]&lt;[Promise][7]>** 
-
-### sleep
-
-**Parameters**
-
--   `timeout` **[Number][3]** 
-
-Returns **[Promise][7]&lt;any>** 
-
-### timeout
-
-Wrap promise with a timeout
-
-**Parameters**
-
--   `promise` **[Promise][7]** promise needs to be to resolve
--   `timeout` **[Number][3]** time interval in milliseconds before reject will be raised
--   `error` **[Error][8]** error with which reject will be raised
-
-Returns **[Promise][7]** 
-
 [1]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function
 
 [2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
@@ -156,9 +61,3 @@ Returns **[Promise][7]**
 [4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
 
 [5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
-
-[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined
-
-[7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise
-
-[8]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error

@@ -141,9 +141,4 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 			});
 	};
-
-	/**
-	 * npm install --save cachify-wrapper
-	 * @name Installation
-	 */
 };
