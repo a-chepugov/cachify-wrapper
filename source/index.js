@@ -124,7 +124,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 						(Date.now() > response.timestamp + ttl) &&
 						(!response.stale || (Date.now() > response.stale + staleLock))
 					) {
-						Promise.all([promisifiedFN.apply(undefined, arguments), cacheLockStale(key, response).catch(console.error)])
+						Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLockStale(key, response).catch(console.error))])
 							.then(([responce]) => handleResponse(key, responce));
 					}
 					return payload;
@@ -132,9 +132,9 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 					return response === lockPlaceholder ?
 						getOnLock(key).catch(console.error)
 							.then(() =>
-								Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
+								Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLock(key).catch(console.error))])
 									.then(([response]) => handleResponse(key, response))) :
-						Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
+						Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLock(key).catch(console.error))])
 							.then(([response]) => handleResponse(key, response));
 				}
 
