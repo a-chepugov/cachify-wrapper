@@ -28,7 +28,7 @@ gulp.task('docs:html', function () {
 });
 
 gulp.task('docs:watch', () => {
-	const watcher = gulp.watch(paths.source, gulp.series('docs:html'));
+	const watcher = gulp.watch(paths.source, gulp.series('docs:html', 'docs:md'));
 	watcher.on('change', function (path) {
 		console.info(`File${path} was changed`);
 	});
