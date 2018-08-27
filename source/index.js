@@ -14,17 +14,17 @@ const {
  * @param {Object} cache - KVStorage [must provide set(key, value, expired), get(key) methods]
  * @param {Object} [options]
  * @param {Number|Object} [options.expire] - key expire options
- * @param {Number} [options.expire.ttl=Infinity] - cached data ttl
- * @param {Number} [options.expire.deviation=options.expire.ttl/100] - expire deviation
+ * @param {Number} [options.expire.ttl=1000] - cached data ttl in milliseconds
+ * @param {Number} [options.expire.deviation=options.expire.ttl/100] - expire deviation in milliseconds
  * @param {Object} [options.lock] - lock similar initial request to data source
- * @param {Number} [options.lock.timeout=1000] - lock timeout
+ * @param {Number} [options.lock.timeout=1000] - lock timeout in milliseconds
  * @param {String} [options.lock.placeholder='?'] - lock placeholder
- * @param {Number} [options.latency=options.lock.timeout] - expected source response time (with `options.retries` affect on awaiting for duplicate requests for first request result)
- * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
- * @param {String} [options.prefix=''] - prefix for keys in KVStorage
  * @param {Boolean|Object} [options.stale] - allow to use a stale data
- * @param {Number} [options.stale.lock=options.lock.timeout] - lock timeout for updating stale data
+ * @param {Number} [options.stale.lock=options.lock.timeout] - lock timeout for updating stale data in milliseconds
  * @param {Function} [options.hasher=JSON.stringify] - creating key for KV-storage function
+ * @param {String} [options.prefix=''] - prefix for keys in KVStorage
+ * @param {Number} [options.latency=options.lock.timeout] - expected source response time (with `options.retries` affect on awaiting for duplicate requests for first request result) in milliseconds
+ * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
  * @return {Function} wrapped function
  * @example
  * const wrapper = require('cachify-wrapper');
@@ -58,41 +58,42 @@ const {
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 50); // Will invoke new actual request (because of low retries & latency options it can't wait for first invoke cache)
  */
-module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout, placeholder = '?'} = {}, stale, hasher, latency, retries, prefix = ''} = {}) {
+module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout: lockTimeout, placeholder: lockPlaceholder} = {}, stale: {lock: staleLock} = {}, stale, hasher, prefix = '', latency, retries} = {}) {
 	ttl = Number.isFinite(ttl) ?
 		ttl > 0 ?
 			ttl :
 			1 :
 		Number.isFinite(expire) && expire > 0 ?
 			expire :
-			Infinity;
+			1000;
 
 	deviation = Number.isFinite(deviation) && deviation > 0 ? deviation : ttl / 100;
 
-	timeout = Number.isFinite(timeout) && timeout > 0 ? timeout : 1000;
+	lockTimeout = Number.isFinite(lockTimeout) && lockTimeout > 0 ? lockTimeout : 1000;
+	lockPlaceholder = typeof lockPlaceholder === 'string' || lockPlaceholder instanceof String ? lockPlaceholder : '?';
 
-	latency = Number.isFinite(latency) && latency > 0 ? latency : timeout;
-	retries = Number.isFinite(retries) && retries > 0 ? retries : Math.floor(timeout / latency) + 1;
+	latency = Number.isFinite(latency) && latency > 0 ? latency : lockTimeout;
+	retries = Number.isFinite(retries) && retries > 0 ? retries : Math.floor(lockTimeout / latency) + 1;
 
-	const staleLock = stale && stale.lock && Number.isFinite(stale.lock) && stale.lock > 0 ? stale.lock : timeout;
+	staleLock = staleLock && Number.isFinite(staleLock) && staleLock > 0 ? staleLock : lockTimeout;
 
-	prefix = typeof prefix === 'string' ? prefix : '';
+	prefix = typeof prefix === 'string' || prefix instanceof String ? prefix : '';
 
 	const promisifiedFN = promisify(fn);
 
 	const cacheSet = promisify(cache.set, cache);
 	const cacheGet = promisify(cache.get, cache);
 
-	const cacheLock = timeout === Infinity ?
-		(key) => cacheSet(key, placeholder) :
-		(key) => cacheSet(key, placeholder, timeout);
+	const cacheLock = lockTimeout === Infinity ?
+		(key) => cacheSet(key, lockPlaceholder) :
+		(key) => cacheSet(key, lockPlaceholder, lockTimeout);
 
 	const cacheLockStale = (key, response = {}) => cacheSet(key, Object.assign({}, response, {stale: Date.now()}));
 
 	const getOnLock = async function (key) {
 		for (let i = 0; i < retries; i++) {
 			const response = await sleep(latency).then(() => cacheGet(key));
-			if (response && response !== placeholder) {
+			if (response && response !== lockPlaceholder) {
 				return response.payload;
 			}
 		}
@@ -133,7 +134,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 					}
 					return payload;
 				} else {
-					return response === placeholder ?
+					return response === lockPlaceholder ?
 						getOnLock(key).catch(() =>
 							Promise.all([promisifiedFN.apply(undefined, arguments), cacheLock(key).catch(console.error)])
 								.then(([response]) => handleResponse(key, response))) :
