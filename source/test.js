@@ -39,7 +39,7 @@ describe('cachify-wrapper', async function () {
 
 		it('hasher', async function () {
 			const cache = new InMemoryStorageWrapper();
-			const options = {expire: {ttl: Infinity}, hasher: (a) => a[0] + '___'};
+			const options = {expire: {ttl: Infinity}, hasher: (a) => a + '___'};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve, reject) => {
@@ -51,7 +51,7 @@ describe('cachify-wrapper', async function () {
 
 		it('ttl', async function () {
 			const cache = new InMemoryStorageWrapper();
-			const options = {expire: {ttl: 250}, hasher: (a) => a[0]};
+			const options = {expire: {ttl: 250}, hasher: (a) => a};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve, reject) => {
@@ -65,7 +65,7 @@ describe('cachify-wrapper', async function () {
 
 		it('ttl === Infinity', async function () {
 			const cache = new InMemoryStorageWrapper();
-			const options = {expire: {ttl: Infinity}, hasher: (a) => a[0]};
+			const options = {expire: {ttl: Infinity}, hasher: (a) => a};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve, reject) => {
@@ -79,7 +79,7 @@ describe('cachify-wrapper', async function () {
 
 		it('ttl. stale', async function () {
 			const cache = new InMemoryStorageWrapper();
-			const options = {expire: {ttl: 250}, hasher: (a) => a[0], stale: true};
+			const options = {expire: {ttl: 250}, hasher: (a) => a, stale: true};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve, reject) => {
@@ -94,7 +94,7 @@ describe('cachify-wrapper', async function () {
 		it('lock', async function () {
 			const cache = new InMemoryStorageWrapper();
 			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
-			const options = {expire: {ttl: 250}, hasher: (a) => a[0], lock: {timeout: 100, placeholder: '?-?'}};
+			const options = {expire: {ttl: 250}, hasher: (a) => a, lock: {timeout: 100, placeholder: '?-?'}};
 			const cached = tested(fn, cache, options);
 
 			return new Promise((resolve) => {
@@ -115,7 +115,7 @@ describe('cachify-wrapper', async function () {
 		it('stale. lock', async function () {
 			const cache = new InMemoryStorageWrapper();
 			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 300));
-			const options = {expire: {ttl: 25}, hasher: (a) => a[0], stale: {lock: 50}};
+			const options = {expire: {ttl: 25}, hasher: (a) => a, stale: {lock: 50}};
 			const cached = tested(fn, cache, options);
 
 			let stale;

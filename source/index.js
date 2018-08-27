@@ -1,14 +1,12 @@
 'use strict';
 
-const {
-	Standard: {
-		Promise: {sleep, promisify, timeout: promiseTimeout},
-		Number: {random}
-	}
-} = require('../helpers');
+const sleep = require('../helpers/Standard/Promise/sleep');
+const promisify = require('../helpers/Standard/Promise/promisify');
+const promiseTimeout = require('../helpers/Standard/Promise/timeout');
+const random = require('../helpers/Standard/Number/random');
 
 /**
- * Wrap function with caching layer
+ * Wraps a function with a caching layer
  * @name cachify-wrapper
  * @param {Function} fn
  * @param {Object} cache - KVStorage interface [must provide set(key, value, expired) and get(key) methods]
@@ -25,6 +23,7 @@ const {
  * @param {Number} [options.timeout] - max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
  * @param {Number} [options.latency=options.lock.timeout] - expected source response time  (in milliseconds). With `options.retries` affect on awaiting for duplicate requests for first request result
  * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
+ * @param {*} thisArg - context for `fn` and `options.hasher`
  * @return {Function} wrapped function
  * @example
  * const wrapper = require('cachify-wrapper');
@@ -50,7 +49,7 @@ const {
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 50); // Will invoke new actual request (because of low retries & latency options it can't wait for first invoke cache)
  */
-module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout: lockTimeout, placeholder: lockPlaceholder} = {}, stale: {lock: staleLock} = {}, stale, hasher, timeout, latency, retries} = {}) {
+module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock: {timeout: lockTimeout, placeholder: lockPlaceholder} = {}, stale: {lock: staleLock} = {}, stale, hasher, timeout, latency, retries} = {}, thisArg) {
 	ttl = Number.isFinite(ttl) ?
 		ttl > 0 ?
 			ttl :
@@ -71,7 +70,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	timeout = Number.isFinite(timeout) && timeout > 0 ? timeout : undefined;
 
-	const promisifiedFN = promisify(fn);
+	const promisifiedFN = promisify(fn, thisArg);
 
 	const cacheSet = promisify(cache.set, cache);
 	const cacheGet_ = promisify(cache.get, cache);
@@ -110,10 +109,12 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	hasher = hasher ?
 		hasher :
-		(a) => JSON.stringify(a);
+		function () {
+			return JSON.stringify(arguments);
+		};
 
 	return function () {
-		const key = hasher(arguments);
+		const key = hasher.apply(thisArg, arguments);
 
 		return cacheGet(key).catch()
 			.then((response) => {
