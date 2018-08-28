@@ -102,7 +102,11 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 				if (cached === lockPlaceholder) {
 					await sleep(latency);
 				} else {
-					return cached;
+					if (Date.now() < (cached.timestamp + ttl) || stale) {
+						return cached;
+					} else {
+						throw new Error(`Expired data stuck: ${key}`);
+					}
 				}
 			} else {
 				break;
@@ -114,8 +118,8 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	const handleCached = stale ?
 		(cached, key) => {
 			if (
-				(cached.timestamp && (Date.now() > cached.timestamp + ttl)) &&
-				(!cached.stale || (Date.now() > cached.stale + staleLock)) // stale mark is not setted or outdated
+				(cached.timestamp && (Date.now() > (cached.timestamp + ttl))) &&
+				(!cached.stale || (Date.now() > (cached.stale + staleLock))) // stale mark is not setted or outdated
 			) {
 				cacheLockStale(key, cached);
 				promisifiedFN.apply(undefined, arguments).then((payload) => savePayload(key, payload));

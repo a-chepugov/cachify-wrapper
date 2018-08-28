@@ -1,6 +1,6 @@
 {
   "name": "cachify-wrapper",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "Wraps a function with a caching layer",
   "main": "index.js",
   "directories": {

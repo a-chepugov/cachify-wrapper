@@ -53,6 +53,16 @@ describe('cachify-wrapper', async function () {
 		}
 	}
 
+	class InMemoryStorageNoExpireWrapper extends InMemoryStorageWrapper {
+		constructor() {
+			super();
+		}
+
+		set(key, value) {
+			this.cache.set(key, value);
+		}
+	}
+
 	const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
 
 	it('hasher', async function () {
@@ -230,6 +240,20 @@ describe('cachify-wrapper', async function () {
 
 		return cached(125).then((payload) => expect(payload).to.equal(250))
 			.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
+	});
+
+	it('cache. expired data stuck', async function () {
+		const cache = new InMemoryStorageNoExpireWrapper();
+		let i = 0;
+		const fn = () => ++i;
+
+		const cached = tested(fn, cache, {expire: {ttl: 150}, hasher: (a) => a});
+
+		return cached(125)
+			.then((payload) => expect(payload).to.equal(1))
+			.then(() => sleep(250))
+			.then(() => expect(cache.cache.has(125)).to.equal(true))
+			.then(() => cached(125).then((payload) => expect(payload).to.equal(2)))
 	});
 
 });
