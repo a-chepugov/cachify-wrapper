@@ -2,7 +2,7 @@ const expect = require('chai').expect;
 const tested = require('./index');
 const sleep = require('../helpers/Standard/Promise/sleep');
 
-describe('cachify-wrapper', async function () {
+describe('cachify-wrapper', () => {
 
 	const InMemoryStorage = require('../helpers/Standard/Map/InMemoryStorage');
 
@@ -23,52 +23,10 @@ describe('cachify-wrapper', async function () {
 		}
 	}
 
-	class InMemoryStorageDelayWrapper extends InMemoryStorageWrapper {
-		constructor() {
-			super();
-		}
-
-		get(key) {
-			return new Promise((resolve) => setTimeout(() => resolve(this.cache.get(key)), 100));
-		}
-	}
-
-	class InMemoryStorageErrorReadWrapper extends InMemoryStorageWrapper {
-		constructor() {
-			super();
-		}
-
-		get(key) {
-			throw new Error('get error');
-		}
-	}
-
-	class InMemoryStorageErrorWriteWrapper extends InMemoryStorageWrapper {
-		constructor() {
-			super();
-		}
-
-		set(key) {
-			throw new Error('set error');
-		}
-	}
-
-	class InMemoryStorageNoExpireWrapper extends InMemoryStorageWrapper {
-		constructor() {
-			super();
-		}
-
-		set(key, value) {
-			this.cache.set(key, value);
-		}
-	}
-
-	const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
-
-	it('hasher', async function () {
+	it('hasher', () => {
 		const cache = new InMemoryStorageWrapper();
-		const options = {expire: {ttl: Infinity}, hasher: (a) => a + '___'};
-		const cached = tested(fn, cache, options);
+		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
+		const cached = tested(fn, cache, {expire: {ttl: Infinity}, hasher: (a) => a + '___'});
 
 		return new Promise((resolve, reject) => {
 			cached(123).catch()
@@ -77,10 +35,10 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('ttl', async function () {
+	it('ttl', () => {
 		const cache = new InMemoryStorageWrapper();
-		const options = {expire: {ttl: 250}, hasher: (a) => a};
-		const cached = tested(fn, cache, options);
+		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
+		const cached = tested(fn, cache, {expire: {ttl: 250}, hasher: (a) => a});
 
 		return new Promise((resolve, reject) => {
 			cached(123)
@@ -91,10 +49,10 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('ttl === Infinity', async function () {
+	it('ttl === Infinity', () => {
 		const cache = new InMemoryStorageWrapper();
-		const options = {expire: {ttl: Infinity}, hasher: (a) => a};
-		const cached = tested(fn, cache, options);
+		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
+		const cached = tested(fn, cache, {expire: {ttl: Infinity}, hasher: (a) => a});
 
 		return new Promise((resolve, reject) => {
 			cached(123)
@@ -105,10 +63,10 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('ttl. stale', async function () {
+	it('ttl. stale', () => {
 		const cache = new InMemoryStorageWrapper();
-		const options = {expire: {ttl: 250}, hasher: (a) => a, stale: true};
-		const cached = tested(fn, cache, options);
+		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
+		const cached = tested(fn, cache, {expire: {ttl: 250}, hasher: (a) => a, stale: true});
 
 		return new Promise((resolve, reject) => {
 			cached(123)
@@ -119,7 +77,7 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('lock', async function () {
+	it('lock', () => {
 		const cache = new InMemoryStorageWrapper();
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 200));
 		const cached = tested(fn, cache, {expire: {ttl: 1000}, hasher: (a) => a, lock: {timeout: 100, placeholder: '?-?'}});
@@ -140,11 +98,10 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('stale. lock', async function () {
+	it('stale. lock', () => {
 		const cache = new InMemoryStorageWrapper();
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 300));
-		const options = {expire: {ttl: 25}, hasher: (a) => a, stale: {lock: 50}};
-		const cached = tested(fn, cache, options);
+		const cached = tested(fn, cache, {expire: {ttl: 25}, hasher: (a) => a, stale: {lock: 50}});
 
 		let stale;
 
@@ -173,7 +130,7 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('latency & retries', async function () {
+	it('latency & retries', () => {
 		const cache = new InMemoryStorageWrapper();
 		let i = 0;
 		const fn = () => new Promise((resolve) => setTimeout(() => {
@@ -198,51 +155,45 @@ describe('cachify-wrapper', async function () {
 		});
 	});
 
-	it('timeout. fail', async function () {
+	class InMemoryStorageDelayWrapper extends InMemoryStorageWrapper {
+		constructor() {
+			super();
+		}
+
+		get(key) {
+			return new Promise((resolve) => setTimeout(() => resolve(this.cache.get(key)), 100));
+		}
+	}
+
+	it('timeout. fail', () => {
 		const cache = new InMemoryStorageDelayWrapper();
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
-
-		const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
-		const cached = tested(fn, cache, options);
+		const cached = tested(fn, cache, {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1});
 
 		return cached(123)
 			.catch(() => expect(true).to.equal(true));
 	});
 
-	it('timeout. success', async function () {
+	it('timeout. success', () => {
 		const cache = new InMemoryStorageDelayWrapper();
 		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
-
-		const options = {expire: {ttl: 250}, timeout: 150, latency: 50, retries: 1};
-		const cached = tested(fn, cache, options);
+		const cached = tested(fn, cache, {expire: {ttl: 250}, timeout: 150, latency: 50, retries: 1});
 
 		return cached(123)
 			.then((payload) => expect(payload).to.equal(246));
 	});
 
-	it('cache. read fail', async function () {
-		const cache = new InMemoryStorageErrorReadWrapper();
-		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+	it('cache. expired data stuck', () => {
+		class InMemoryStorageNoExpireWrapper extends InMemoryStorageWrapper {
+			constructor() {
+				super();
+			}
 
-		const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
-		const cached = tested(fn, cache, options);
+			set(key, value) {
+				this.cache.set(key, value);
+			}
+		}
 
-		return cached(125).then((payload) => expect(payload).to.equal(250))
-			.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
-	});
-
-	it('cache. write fail', async function () {
-		const cache = new InMemoryStorageErrorWriteWrapper();
-		const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
-
-		const options = {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1};
-		const cached = tested(fn, cache, options);
-
-		return cached(125).then((payload) => expect(payload).to.equal(250))
-			.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
-	});
-
-	it('cache. expired data stuck', async function () {
 		const cache = new InMemoryStorageNoExpireWrapper();
 		let i = 0;
 		const fn = () => ++i;
@@ -254,6 +205,45 @@ describe('cachify-wrapper', async function () {
 			.then(() => sleep(250))
 			.then(() => expect(cache.cache.has(125)).to.equal(true))
 			.then(() => cached(125).then((payload) => expect(payload).to.equal(2)))
+	});
+
+	describe('cache access fail', () => {
+		const consoleError = console.error;
+
+		before(() => console.error = new Function());
+
+		class InMemoryStorageErrorReadWrapper extends InMemoryStorageWrapper {
+			get(key) {
+				throw new Error('get error');
+			}
+		}
+
+		it('read', () => {
+			const cache = new InMemoryStorageErrorReadWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+			const cached = tested(fn, cache, {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1});
+
+			return cached(125).then((payload) => expect(payload).to.equal(250))
+				.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
+		});
+
+		class InMemoryStorageErrorWriteWrapper extends InMemoryStorageWrapper {
+			set(key) {
+				throw new Error('set error');
+			}
+		}
+
+		it('write', () => {
+			const cache = new InMemoryStorageErrorWriteWrapper();
+			const fn = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 150));
+			const cached = tested(fn, cache, {expire: {ttl: 250}, timeout: 50, latency: 50, retries: 1});
+
+			return cached(125).then((payload) => expect(payload).to.equal(250))
+				.then(() => cached(125).then((payload) => expect(payload).to.equal(250)));
+		});
+
+		after(() => console.error = consoleError);
+
 	});
 
 });
