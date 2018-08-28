@@ -70,6 +70,12 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 	timeout = Number.isFinite(timeout) && timeout > 0 ? timeout : undefined;
 
+	hasher = hasher ?
+		hasher :
+		function () {
+			return JSON.stringify(arguments);
+		};
+
 	const promisifiedFN = promisify(fn, thisArg);
 
 	const cacheSet = promisify(cache.set, cache);
@@ -83,61 +89,53 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 		(key) => cacheSet(key, lockPlaceholder) :
 		(key) => cacheSet(key, lockPlaceholder, lockTimeout);
 
-	const cacheLockStale = (key, response = {}) => cacheSet(key, Object.assign({}, response, {stale: Date.now()}));
+	const cacheLockStale = (key, cached = {}) => cacheSet(key, Object.assign({}, cached, {stale: Date.now()}));
 
-	const getOnLock = async function (key) {
+	const savePayload = (stale || ttl === Infinity) ?
+		(key, payload) => cacheSet(key, {payload, timestamp: Date.now()}).catch(console.error) :
+		(key, payload) => cacheSet(key, {payload, timestamp: Date.now()}, Math.floor(ttl + random(0, deviation))).catch(console.error);
+
+	const getCached = async (key) => {
 		for (let i = 0; i < retries; i++) {
-			const response = await sleep(latency).then(() => cacheGet(key));
-			if (response && response !== lockPlaceholder) {
-				return response.payload;
+			const cached = await cacheGet(key);
+			if (cached) {
+				if (cached === lockPlaceholder) {
+					await sleep(latency);
+				} else {
+					return cached;
+				}
+			} else {
+				break;
 			}
 		}
 		throw new Error(`Cache read locked: ${key}`);
 	};
 
-	const handleResponse = (stale || ttl === Infinity) ?
-		(key, payload) => {
-			cacheSet(key, {payload, timestamp: Date.now()}).catch(console.error);
-			return payload;
+	const handleCached = stale ?
+		(cached, key) => {
+			if (
+				(cached.timestamp && (Date.now() > cached.timestamp + ttl)) &&
+				(!cached.stale || (Date.now() > cached.stale + staleLock)) // stale mark is not setted or outdated
+			) {
+				cacheLockStale(key, cached).catch(console.error);
+				promisifiedFN.apply(undefined, arguments).then((payload) => savePayload(key, payload));
+			}
+			return cached.payload;
 		} :
-		(key, payload) => {
-			cacheSet(key, {payload, timestamp: Date.now()}, Math.floor(ttl + random(0, deviation))).catch(console.error);
-			return payload;
-		};
-
-	hasher = hasher ?
-		hasher :
-		function () {
-			return JSON.stringify(arguments);
-		};
+		(cached) => cached.payload;
 
 	return function () {
 		const key = hasher.apply(thisArg, arguments);
 
-		return cacheGet(key).catch(console.error)
-			.then((response) => {
-				const {payload} = response || {};
-
-				if (payload) {
-					if (
-						stale &&
-						(Date.now() > response.timestamp + ttl) &&
-						(!response.stale || (Date.now() > response.stale + staleLock))
-					) {
-						Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLockStale(key, response).catch(console.error))])
-							.then(([responce]) => handleResponse(key, responce));
-					}
-					return payload;
-				} else {
-					return response === lockPlaceholder ?
-						getOnLock(key).catch(console.error)
-							.then(() =>
-								Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLock(key).catch(console.error))])
-									.then(([response]) => handleResponse(key, response))) :
-						Promise.all([promisifiedFN.apply(undefined, arguments), Promise.resolve().then(cacheLock(key).catch(console.error))])
-							.then(([response]) => handleResponse(key, response));
-				}
-
-			});
+		return getCached(key)
+			.catch(() => {
+				cacheLock(key).catch(console.error);
+				return promisifiedFN.apply(undefined, arguments)
+					.then((payload) => {
+						savePayload(key, payload);
+						return {payload};
+					});
+			})
+			.then((cached) => handleCached(cached, key));
 	};
 };
