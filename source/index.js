@@ -82,12 +82,12 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	const cacheGet_ = promisify(cache.get, cache);
 
 	const cacheGet = timeout ?
-		(key) => promiseTimeout(cacheGet_(key), timeout, new Error('Cache read timeout')) :
-		cacheGet_;
+		(key) => promiseTimeout(cacheGet_(key).catch(console.error), timeout, new Error('Cache read timeout')) :
+		(key) => cacheGet_(key).catch(console.error);
 
 	const cacheLock = lockTimeout === Infinity ?
-		(key) => cacheSet(key, lockPlaceholder) :
-		(key) => cacheSet(key, lockPlaceholder, lockTimeout);
+		(key) => cacheSet(key, lockPlaceholder).catch(console.error) :
+		(key) => cacheSet(key, lockPlaceholder, lockTimeout).catch(console.error);
 
 	const cacheLockStale = (key, cached = {}) => cacheSet(key, Object.assign({}, cached, {stale: Date.now()}));
 
@@ -117,7 +117,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 				(cached.timestamp && (Date.now() > cached.timestamp + ttl)) &&
 				(!cached.stale || (Date.now() > cached.stale + staleLock)) // stale mark is not setted or outdated
 			) {
-				cacheLockStale(key, cached).catch(console.error);
+				cacheLockStale(key, cached);
 				promisifiedFN.apply(undefined, arguments).then((payload) => savePayload(key, payload));
 			}
 			return cached.payload;
@@ -129,7 +129,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 
 		return getCached(key)
 			.catch(() => {
-				cacheLock(key).catch(console.error);
+				cacheLock(key);
 				return promisifiedFN.apply(undefined, arguments)
 					.then((payload) => {
 						savePayload(key, payload);
