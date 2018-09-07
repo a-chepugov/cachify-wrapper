@@ -32,6 +32,8 @@ describe('cachify-wrapper', () => {
 		return new Promise((resolve, reject) => {
 			cached(123).catch()
 				.then(() => expect(cache.cache.has('123___')).to.equal(true))
+				.then(() => sleep(500))
+				.then(() => expect(cache.cache.has('123___')).to.equal(true))
 				.then(() => resolve()).catch((error) => reject(error));
 		});
 	});
@@ -87,7 +89,7 @@ describe('cachify-wrapper', () => {
 			cached(123);
 
 			// Проверяем наличие метки блокировки
-			setTimeout(() => expect(Number.isFinite(cache.cache.get(123).p)).to.equal(true), 10);
+			setTimeout(() => expect(Number.isFinite(cache.cache.get(123).lock)).to.equal(true), 10);
 
 			// Истечение срока метки блокировки
 			setTimeout(() => expect(cache.cache.has(123)).to.equal(false), 150);
@@ -197,7 +199,7 @@ describe('cachify-wrapper', () => {
 			}
 		}
 
-		it('placeholder', () => {
+		it('lock', () => {
 			const cache = new InMemoryStorageNoExpireWrapper();
 			const fn = () => new Promise((resolve, reject) => reject());
 
@@ -206,7 +208,7 @@ describe('cachify-wrapper', () => {
 
 			return cached(125).catch(new Function())
 				.then(() => {
-					lock = cache.cache.get(125).placeholder;
+					lock = cache.cache.get(125).lock;
 					expect(Number.isFinite(lock)).to.equal(true);
 				})
 				.then(() => {
@@ -214,7 +216,7 @@ describe('cachify-wrapper', () => {
 				})
 				.then(() => sleep(100))
 				.then(() => {
-					const lockNew = cache.cache.get(125).placeholder;
+					const lockNew = cache.cache.get(125).lock;
 					expect(Number.isFinite(lockNew)).to.equal(true);
 					expect(lockNew === lock).to.equal(false);
 				});

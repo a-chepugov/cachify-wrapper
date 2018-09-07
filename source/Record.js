@@ -23,16 +23,16 @@ module.exports = class Record {
 		return this.s;
 	}
 
-	set placeholder(value) {
-		this.p = value;
+	set lock(value) {
+		this.l = value;
 	}
 
-	get placeholder() {
-		return this.p;
+	get lock() {
+		return this.l;
 	}
 
-	isPlaceholder() {
-		return !!(this.placeholder);
+	isLocked() {
+		return !!(this.lock);
 	}
 
 	static of(value, timestamp) {
@@ -44,21 +44,18 @@ module.exports = class Record {
 		return record;
 	}
 
-	static placeholder(placeholder, timestamp) {
+	static lock(lock) {
 		const record = new Record();
-		record.placeholder = placeholder;
-		if (timestamp) {
-			record.timestamp = timestamp;
-		}
+		record.lock = lock;
 		return record;
 	}
 
 	static from(obj = {}) {
 		const record = new Record();
 		({
-			t: record.timestamp,
-			p: record.placeholder,
 			v: record.value,
+			t: record.timestamp,
+			l: record.lock,
 			s: record.stale
 		} = obj);
 		return record;
