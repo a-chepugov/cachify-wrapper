@@ -10,16 +10,14 @@ Wraps a function with a caching layer
 -   `cache` **[Object][2]** KVStorage interface [must provide set(key, value, expired) and get(key) methods]
 -   `options` **[Object][2]?** 
     -   `options.expire` **([Number][3] \| [Object][2])?** key expire options
-        -   `options.expire.ttl` **[Number][3]** cached data ttl (in milliseconds) (optional, default `1000`)
-        -   `options.expire.deviation` **[Number][3]** expire deviation (in milliseconds) (optional, default `options.expire.ttl/100`)
-    -   `options.lock` **[Object][2]?** lock similar initial request to data source
-        -   `options.lock.timeout` **[Number][3]** lock timeout  (in milliseconds) (optional, default `1000`)
-        -   `options.lock.placeholder` **[String][4]** lock placeholder (optional, default `'?'`)
-    -   `options.stale` **([Boolean][5] \| [Object][2])?** allow to use a stale data
-        -   `options.stale.lock` **[Number][3]** lock timeout for updating stale data (in milliseconds) (optional, default `options.lock.timeout`)
+        -   `options.expire.ttl` **[Number][3]** cached data ttl (TimeToLive) [in milliseconds] (optional, default `1000`)
+        -   `options.expire.deviation` **[Number][3]** `ttl` deviation (prevent simultaneous keys deletions) [in milliseconds] (optional, default `options.expire.ttl/100`)
+    -   `options.lock` **[Number][3]** lock timeout [in milliseconds] (optional, default `1000`)
+    -   `options.stale` **([Boolean][4] \| [Object][2])?** allow to use a stale data
+        -   `options.stale.lock` **[Number][3]** lock timeout for updating stale data [in milliseconds] (optional, default `options.lock.timeout`)
     -   `options.hasher` **[Function][1]** creates key for KV-storage by `fn` arguments (optional, default `JSON.stringify`)
     -   `options.timeout` **[Number][3]?** max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
-    -   `options.latency` **[Number][3]** expected source response time  (in milliseconds). With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
+    -   `options.latency` **[Number][3]** expected source response time  [in milliseconds]. With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
     -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
 -   `thisArg` **any** context for `fn` and `options.hasher`
 
@@ -43,7 +41,7 @@ class RedisCache {
 }
 const cache = new RedisCache();
 const sourceFunc = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
-const options = {expire: {ttl: 500}, lock: {timeout: 100, placeholder: '???'}, latency: 100, retries: 1};
+const options = {expire: {ttl: 500}, lock: {timeout: 100}, latency: 100, retries: 1};
 const cached = wrapper(sourceFunc, cache, options);
 cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})); // Invoke new request
 setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
@@ -58,6 +56,4 @@ Returns **[Function][1]** wrapped function
 
 [3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
 
-[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
-
-[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
