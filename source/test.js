@@ -24,6 +24,36 @@ describe('cachify-wrapper', () => {
 	}
 
 	describe('arguments', () => {
+
+		it('lock', () => {
+			const cache = new InMemoryStorageWrapper();
+			let i = 0;
+
+			const fn0 = (a) => new Promise((resolve) => {
+				i++;
+				setTimeout(() => {
+					resolve(a);
+				}, 25);
+			});
+
+			const fn1 = tested(fn0, cache, {expire: {ttl: 1000}, hasher: (a) => a, lock: 100});
+
+			return new Promise((resolve) => {
+				fn1(123);
+
+				sleep(25).then(()=> fn1(123));
+				sleep(50).then(()=> fn1(123));
+				sleep(100).then(()=> fn1(123));
+				sleep(500).then(()=> fn1(123));
+				sleep(750).then(()=> fn1(123));
+
+				setTimeout(() => expect(i).to.equal(1), 25);
+				setTimeout(() => expect(i).to.equal(1), 800);
+
+				setTimeout(() => resolve(), 300);
+			});
+		});
+
 		it('hasher', () => {
 			const cache = new InMemoryStorageWrapper();
 			const fn0 = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
@@ -80,7 +110,7 @@ describe('cachify-wrapper', () => {
 			});
 		});
 
-		it('lock', () => {
+		it('lock mark', () => {
 			const cache = new InMemoryStorageWrapper();
 			const fn0 = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 200));
 			const fn1 = tested(fn0, cache, {expire: {ttl: 1000}, hasher: (a) => a, lock: 100});

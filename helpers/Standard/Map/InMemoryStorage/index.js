@@ -9,6 +9,7 @@
 module.exports = class {
 	constructor(source) {
 		this.__data = new Map(source);
+		this.__expire = new Map();
 	}
 
 	/**
@@ -52,12 +53,14 @@ module.exports = class {
 	 * @param {Number} expire - expire time in milliseconds
 	 */
 	expire(key, expire) {
+		clearTimeout(this.__expire.get(key));
 		const record = this.__data.get(key);
 		if (typeof record === 'object') {
 			record.till = Date.now() + expire;
 		}
 		this.__data.set(key, record);
-		setTimeout(this.del.bind(this), expire, key);
+		const timer = setTimeout(this.del.bind(this), expire, key);
+		this.__expire.set(key, timer);
 	}
 
 	clear() {

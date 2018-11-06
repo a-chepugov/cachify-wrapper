@@ -108,7 +108,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 						throw new Error(`Lock stuck: ${key}`);
 					}
 				} else {
-					if (Date.now() < (record.timestamp + ttl) || stale) {
+					if ((record.timestamp + ttl) > Date.now() || stale) {
 						return record;
 					} else {
 						throw new Error(`Expired data stuck: ${key}`);

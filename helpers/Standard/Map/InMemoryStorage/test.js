@@ -27,12 +27,8 @@ describe('InMemoryStorage', function () {
 		const i = new Class();
 		i.set(1, {q: 'q'});
 		i.expire(1, 25);
-		return new Promise((resolve) => {
-			setTimeout(() => resolve(i.get(1)), 50);
-		})
-			.then((result) => {
-				expect(result).to.equal(undefined);
-			})
+		return new Promise((resolve) => setTimeout(() => resolve(i.get(1)), 50))
+			.then((result) => expect(result).to.equal(undefined));
 	});
 
 	it('clear', async function () {
@@ -86,11 +82,11 @@ describe('InMemoryStorage', function () {
 		i.import(dump);
 
 		expect(i.get(1)).to.equal(1);
-		return new Promise((resolve, reject) => {
+		return new Promise((resolve) => {
 			setTimeout(() => {
 				expect(i.get(1)).to.equal(undefined);
 				resolve();
-			}, 100)
+			}, 100);
 		});
 	});
 });
