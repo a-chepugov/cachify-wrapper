@@ -30,7 +30,7 @@ describe('cachify-wrapper', () => {
 			const fn1 = tested(fn0, cache, {expire: {ttl: Infinity}, hasher: (a) => a + '___'});
 
 			return new Promise((resolve, reject) => {
-				fn1(123).catch()
+				fn1(123)
 					.then(() => expect(cache.cache.has('123___')).to.equal(true))
 					.then(() => sleep(500))
 					.then(() => expect(cache.cache.has('123___')).to.equal(true))
