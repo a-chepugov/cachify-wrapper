@@ -31,9 +31,7 @@ describe('cachify-wrapper', () => {
 
 			const fn0 = (a) => new Promise((resolve) => {
 				i++;
-				setTimeout(() => {
-					resolve(a);
-				}, 25);
+				setTimeout(() => resolve(a), 25);
 			});
 
 			const fn1 = tested(fn0, cache, {expire: {ttl: 1000}, hasher: (a) => a, lock: 100});
@@ -51,6 +49,44 @@ describe('cachify-wrapper', () => {
 				setTimeout(() => expect(i).to.equal(1), 800);
 
 				setTimeout(() => resolve(), 300);
+			});
+		});
+
+		it('lock concurrent', () => {
+			const cache = new InMemoryStorageWrapper();
+			let i = {1: 0, 2: 0};
+
+			const fn0 = (a) => new Promise((resolve) => {
+				i[a]++;
+				setTimeout(() => resolve(a), 25);
+			});
+
+			const fn1 = tested(fn0, cache, {expire: {ttl: 1000}, hasher: (a) => a, lock: 100});
+
+			return new Promise((resolve) => {
+				fn1(1);
+
+				sleep(25).then(()=> fn1(1));
+				sleep(50).then(()=> fn1(1));
+				sleep(100).then(()=> fn1(1));
+				sleep(500).then(()=> fn1(1));
+				sleep(750).then(()=> fn1(1));
+
+				setTimeout(() => expect(i[1]).to.equal(1), 25);
+				setTimeout(() => expect(i[1]).to.equal(1), 800);
+
+				fn1(2);
+
+				sleep(25).then(()=> fn1(2));
+				sleep(50).then(()=> fn1(2));
+				sleep(100).then(()=> fn1(2));
+				sleep(500).then(()=> fn1(2));
+				sleep(750).then(()=> fn1(2));
+
+				setTimeout(() => expect(i[2]).to.equal(1), 25);
+				setTimeout(() => expect(i[2]).to.equal(1), 800);
+
+				setTimeout(() => resolve(), 1000);
 			});
 		});
 
