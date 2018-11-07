@@ -23,6 +23,7 @@ const random = require('../helpers/Standard/Number/random');
  * @param {Number} [options.latency=options.lock.timeout] - expected source response time  [in milliseconds]. With `options.retries` affect on awaiting for duplicate requests for first request result
  * @param {Number} [options.retries=(options.lock.timeout/options.latency)+1] - number of passes before new actual request
  * @param {Function} [options.hasher=JSON.stringify] - creates key for KV-storage by `fn` arguments
+ * @param {Boolean} [options.debug] - debug logs
  * @param {*} thisArg - context for `fn` and `options.hasher`
  * @return {Function} wrapped function
  * @example
@@ -49,7 +50,7 @@ const random = require('../helpers/Standard/Number/random');
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result
  * setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 50); // Will invoke new actual request (because of low retries & latency options it can't wait for first invoke cache)
  */
-module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock, stale: {lock: staleLock} = {}, stale, timeout, latency, retries, hasher} = {}, thisArg) {
+module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lock, stale: {lock: staleLock} = {}, stale, timeout, latency, retries, hasher, debug} = {}, thisArg) {
 	ttl =
 		Number.isFinite(expire) && expire > 0 ?
 			Math.floor(expire) :
@@ -76,16 +77,18 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 			return JSON.stringify(arguments);
 		};
 
+	const errorHandler = debug ? console.error : new Function();
+
 	const promisifiedFN = promisify(fn, thisArg);
 
 	const cacheSet = promisify(cache.set, cache);
 	const cacheGet_ = promisify(cache.get, cache);
 
 	const cacheGet = timeout ?
-		(key) => promiseTimeout(cacheGet_(key).catch(console.error), timeout, new Error('Cache read timeout')) :
-		(key) => cacheGet_(key).catch(console.error);
+		(key) => promiseTimeout(cacheGet_(key).catch(errorHandler), timeout, new Error('Cache read timeout')) :
+		(key) => cacheGet_(key).catch(errorHandler);
 
-	const cacheLock = (key) => cacheSet(key, Record.lock(Date.now()), lock).catch(console.error);
+	const cacheLock = (key) => cacheSet(key, Record.lock(Date.now()), lock).catch(errorHandler);
 
 	const cacheLockStale = (key, record) => {
 		record.stale = Date.now();
@@ -93,8 +96,8 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	};
 
 	const saveValue = (stale || ttl === Infinity) ?
-		(key, value) => cacheSet(key, Record.of(value, Date.now())).catch(console.error) :
-		(key, value) => cacheSet(key, Record.of(value, Date.now()), Math.floor(ttl + random(0, deviation))).catch(console.error);
+		(key, value) => cacheSet(key, Record.of(value, Date.now())).catch(errorHandler) :
+		(key, value) => cacheSet(key, Record.of(value, Date.now()), Math.floor(ttl + random(0, deviation))).catch(errorHandler);
 
 	const getCached = async (key) => {
 		for (let i = 0; i < retries; i++) {
@@ -118,7 +121,7 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 				break;
 			}
 		}
-		throw new Error(`Cache read locked: ${key}`);
+		throw new Error(`No cache for key: ${key}`);
 	};
 
 	const returnRecord = stale ?
@@ -137,8 +140,9 @@ module.exports = function (fn, cache, {expire: {ttl, deviation} = {}, expire, lo
 	return function () {
 		const key = hasher.apply(thisArg, arguments);
 		return getCached(key)
-			.catch(() => {
+			.catch((error) => {
 				cacheLock(key);
+				errorHandler(error);
 				return promisifiedFN.apply(thisArg, arguments)
 					.then((value) => {
 						saveValue(key, value);

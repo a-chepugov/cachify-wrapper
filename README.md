@@ -15,10 +15,11 @@ Wraps a function with a caching layer
     -   `options.lock` **[Number][3]** lock timeout (prevents simultaneous concurrent invoke of `fn` at initial period) [in milliseconds] (optional, default `1000`)
     -   `options.stale` **([Boolean][4] \| [Object][2])?** allow to use a stale data
         -   `options.stale.lock` **[Number][3]** lock timeout for updating stale data [in milliseconds] (optional, default `options.lock`)
-    -   `options.hasher` **[Function][1]** creates key for KV-storage by `fn` arguments (optional, default `JSON.stringify`)
     -   `options.timeout` **[Number][3]?** max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
     -   `options.latency` **[Number][3]** expected source response time  [in milliseconds]. With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
     -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
+    -   `options.hasher` **[Function][1]** creates key for KV-storage by `fn` arguments (optional, default `JSON.stringify`)
+    -   `options.debug` **[Boolean][4]?** debug logs
 -   `thisArg` **any** context for `fn` and `options.hasher`
 
 **Examples**

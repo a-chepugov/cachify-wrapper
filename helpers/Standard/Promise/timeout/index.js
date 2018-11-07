@@ -9,13 +9,20 @@
  * @param {Error} error - error with which reject will be raised
  * @return {Promise}
  */
-module.exports = (promise, timeout, error) =>
-	Promise.race([
-		promise,
-		new Promise((resolve, reject) => {
-			const id = setTimeout(() => {
-				reject(error);
-				clearTimeout(id);
-			}, timeout);
+module.exports = (promise, timeout, error) => {
+	let id;
+	return Promise.race(
+		[
+			promise,
+			new Promise((resolve, reject) => id = setTimeout(() => reject(error), timeout))
+		]
+	)
+		.then((result) => {
+			clearTimeout(id);
+			return result;
 		})
-	]);
+		.catch((error) => {
+			clearTimeout(id);
+			throw error;
+		});
+};

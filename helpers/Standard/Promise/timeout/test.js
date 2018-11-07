@@ -1,18 +1,17 @@
 const expect = require('chai').expect;
 const tested = require('./index');
 
-describe('timeout', async function () {
+describe('timeout', () => {
 
-	describe('run', async function () {
-		const promise = new Promise((resolve) => setTimeout(() => resolve(1), 50));
+	describe('run', () => {
+		const getPromise = (timeout) => new Promise((resolve) => setTimeout(() => resolve(1), timeout));
 
-		it('promise', async function () {
-			expect(tested(promise, 50)).to.be.an.instanceof(Promise);
-		});
+		it('promise', () => expect(tested(getPromise(50), 50)).to.be.an.instanceof(Promise));
 
-		it('resolve', async () => tested(promise, 100).then((payload) => expect(payload).to.be.equal(1)));
+		it('resolve', () => tested(getPromise(50), 100).then((payload) => expect(payload).to.be.equal(1)));
 
-		it('reject', async () => tested(promise, 1).catch(() => expect(true).to.equal(true)));
+		it('reject', () => tested(getPromise(50), 1, 'some text').catch((error) => error).then((payload) => expect(payload).to.equal('some text')));
+
 	});
 
 });
