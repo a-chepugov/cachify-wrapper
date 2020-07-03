@@ -1,14 +1,7 @@
-'use strict';
-
 /**
  * Returns random number between `a` and `b`
- * @name random
- * @memberof Standard/Number
- * @param {Number} a
- * @param {Number} b
- * @return {Number}
  */
-module.exports = (a, b) => {
+export default (a: number, b: number) => {
 	a =
 		Number.isFinite(a) ?
 			a :

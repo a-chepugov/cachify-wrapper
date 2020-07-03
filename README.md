@@ -6,26 +6,27 @@ Wraps a function with a caching layer
 
 **Parameters**
 
--   `fn` **[Function][1]** 
--   `cache` **[Object][2]** KVStorage interface [must provide set(key, value, expired) and get(key) methods]
--   `options` **[Object][2]?** 
-    -   `options.expire` **([Number][3] \| [Object][2])?** key expire options
-        -   `options.expire.ttl` **[Number][3]** cached data ttl (TimeToLive) [in milliseconds] (optional, default `1000`)
-        -   `options.expire.deviation` **[Number][3]** `ttl` deviation (prevents simultaneous keys deletions) [in milliseconds] (optional, default `options.expire.ttl/100`)
-    -   `options.lock` **[Number][3]** lock timeout (prevents simultaneous concurrent invoke of `fn` at initial period) [in milliseconds] (optional, default `1000`)
-    -   `options.stale` **([Boolean][4] \| [Object][2])?** allow to use a stale data
-        -   `options.stale.lock` **[Number][3]** lock timeout for updating stale data [in milliseconds] (optional, default `options.lock`)
-    -   `options.timeout` **[Number][3]?** max cache response time (in milliseconds) before considering it as disabled, and invoking actual request to source
-    -   `options.latency` **[Number][3]** expected source response time  [in milliseconds]. With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
-    -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
+-   `fn` **[Function][1]** - source of data
+-   `storage` **[Object][2]** cache storage that implements CacheStorage<K, V> interface [must provide get(key) and set(key, value, expired) methods] (optional, default `InMemoryStorage`)
+-   `options` **[Object][2]?**
+    -   `options.expire` **[Number][3]** cached data ttl (TimeToLive) [in milliseconds] (optional, default `1000`)
+    -   `options.deviation` **[Number][3]** ttl deviation (prevents simultaneous keys deletions) (optional, default `options.expire.ttl/100`)
+    -   `options.stale` **[Number][3]** additional ttl for stale data (optional, default `0`)
+    -   `options.ttl` **[Number][3]** forced ttl for data (useful in case on multiply service with different expire) (optional, default `options.expire+options.stale`)
+    -   `options.lock` **[Number][3]** lock timeout (prevents simultaneous concurrent invoke of `fn` at initial period) (optional, default `1000`)
     -   `options.hasher` **[Function][1]** creates key for KV-storage by `fn` arguments (optional, default `JSON.stringify`)
+    -   `options.storage.timeout` **[Number][3]?** max cache response time before considering it as disabled, and invoking actual request to source (optional, default `Infinity`)
+    -   `options.storage.strategy` invoke and return strategy for `storage` (optional, default `Strategies.ASYNC`). Can be Strategies.SYNC, Strategies.ASYNC, Strategies.CALLBACK
+    -   `options.source.timeout` **[Number][3]?** max fn response time before considering it as failed (optional, default `Infinity`)
+    -   `options.source.strategy` invoke and return strategy for `fn` (optional, default `Strategies.ASYNC`)
+    -   `options.source.latency` **[Number][3]** expected source response time. With `options.retries` affect on awaiting for duplicate requests for first request result (optional, default `options.lock.timeout`)
+    -   `options.retries` **[Number][3]** number of passes before new actual request (optional, default `(options.lock.timeout/options.latency)+1`)
     -   `options.debug` **[Boolean][4]?** debug logs
--   `thisArg` **any** context for `fn` and `options.hasher`
 
 **Examples**
 
 ```javascript
-const wrapper = require('cachify-wrapper');
+const wrapper = require('cachify-wrapper').default;
 const redis = require('redis');
 class RedisCache {
  constructor() {
@@ -42,7 +43,7 @@ class RedisCache {
 }
 const cache = new RedisCache();
 const sourceFunc = (a) => new Promise((resolve) => setTimeout(() => resolve(a * 2), 250));
-const options = {expire: {ttl: 500}, lock: {timeout: 100}, latency: 100, retries: 1};
+const options = {expire: 500, lock: 100, retries: 1, source: {latency: 100}};
 const cached = wrapper(sourceFunc, cache, options);
 cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})); // Invoke new request
 setTimeout(() => cached(123).then((payload) => console.dir(payload, {colors: true, depth: null})), 200); // Will get cached result

@@ -1,0 +1,28 @@
+{
+	"compileOnSave": true,
+	"compilerOptions": {
+		"rootDir": "source",
+		"outDir": "build",
+		"module": "commonjs",
+		"target": "ES2015",
+		"declaration": true,
+		"alwaysStrict": true,
+		"noImplicitAny": true,
+		"removeComments": true,
+		"stripInternal": true,
+		"sourceMap": true,
+		"noErrorTruncation": true,
+		"pretty": true
+	},
+	"files": [
+		"./source/index.ts"
+	],
+	"exclude": [
+		"./*.js",
+		"./*.ts",
+		"build",
+		"docs",
+		"node_modules",
+		"**/*.test.ts"
+	]
+}
