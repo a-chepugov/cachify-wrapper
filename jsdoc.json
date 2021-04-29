@@ -1,0 +1,40 @@
+{
+	"tags": {
+		"allowUnknownTags": true,
+		"dictionaries": [
+			"jsdoc",
+			"closure"
+		]
+	},
+	"source": {
+		"include": [
+			"source"
+		],
+		"exclude": [
+			".idea",
+			".git",
+			".meteor",
+			"node_modules"
+		],
+		"includePattern": ".+\\.js(x|doc)?$"
+	},
+	"plugins": [
+		"plugins/markdown"
+	],
+	"opts": {
+		"destination": "./docs/",
+		"encoding": "utf8",
+		"template": "templates/default"
+	},
+	"markdown": {
+		"hardwrap": true
+	},
+	"templates": {
+		"cleverLinks": true,
+		"monospaceLinks": true,
+		"default": {
+			"outputSourceFiles": false,
+			"includeDate": true
+		}
+	}
+}
