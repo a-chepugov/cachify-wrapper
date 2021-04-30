@@ -99,6 +99,10 @@ exports.default = (
 		timeout(cacher.set.bind(cacher), storageTimeout) :
 		cacher.set.bind(cacher);
 
+	const del = Number.isFinite(storageTimeout) ?
+		timeout(cacher.set.bind(cacher), storageTimeout) :
+		cacher.del.bind(cacher);
+
 	/**
 	 * @ignore
 	 * @param {...*} [args]
@@ -187,7 +191,7 @@ exports.default = (
 	wrapped.del = (...args) => {
 		/** @type {CB<boolean>} */
 		const cb = args.pop();
-		return cacher.del(hasher(...args), cb);
+		return del(hasher(...args), cb);
 	};
 
 	return wrapped;
