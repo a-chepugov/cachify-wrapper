@@ -23,9 +23,11 @@ exports.TIMEOUT_ERROR = TIMEOUT_ERROR;
  */
 function timeout(fn, timeout) {
 	/** @ts-ignore */
-	return (...args) => {
+	return function() {
 		/** @type {CB<any>} */
-		const cb = args.pop();
+		const cb = Array.prototype.slice.call(arguments, -1)[0];
+		const args = Array.prototype.slice.call(arguments, 0, -1)
+
 		let unrunned = true;
 		/** @type {any} */
 		let timer;
@@ -38,7 +40,7 @@ function timeout(fn, timeout) {
 				}
 			}, timeout);
 		}
-		fn(...args,
+		fn.call(this, ...args,
 			/**
 			 * @param {Error} error
 			 * @param {*} result
