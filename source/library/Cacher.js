@@ -38,19 +38,19 @@ exports.CACHE_EXPIRED_ERROR = CACHE_EXPIRED_ERROR;
  * @ignore
  * @template K
  * @template V
- * @param {K} key
- * @param {CB<Record<V>>} cb
  * @param {Storage<K, RecordPacked<V>>} store
+ * @param {K} key
  * @param {CacherOptions} options
  * @param {number} retries
  * @param {number} latency
+ * @param {CB<Record<V>>} cb
  */
-const onGetFactory = (key, cb, store, options, retries, latency) =>
+const onGetFactory = (store, key, options, retries, latency, cb) =>
 	/**
 	 * @param {Error} [error]
 	 * @param {RecordPacked<V>} [packed]
 	 */
-	(error, packed) => {
+		(error, packed) => {
 		// record reading error
 		// no record
 		// record exists
@@ -63,7 +63,7 @@ const onGetFactory = (key, cb, store, options, retries, latency) =>
 			const record = Record.unpack(packed);
 			if (record.lock) {
 				if (retries < options.retries && (record.timestamp + options.lock > Date.now())) {
-					setTimeout(() => store.get(key, onGetFactory(key, cb, store, options, retries + 1, latency)), latency);
+					setTimeout(() => store.get(key, onGetFactory(store, key, options, retries + 1, latency, cb)), latency);
 					return;
 				} else {
 					return cb(new CACHE_LOCK_EXPIRED_ERROR(String(key)), null);
@@ -100,7 +100,7 @@ class Cacher {
 	 * @param {CB<Record<V>>} cb
 	 */
 	get(key, cb) {
-		const onGet = onGetFactory(key, cb, this._store, this._options, 0, this._latency);
+		const onGet = onGetFactory(this._store, key, this._options, 0, this._latency, cb);
 		return this._store.get(key, onGet);
 	}
 
