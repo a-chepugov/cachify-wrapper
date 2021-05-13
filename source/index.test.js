@@ -14,7 +14,6 @@ describe('cachify-wrapper', () => {
 
 			/**
 			 * @ignore
-			 * @description simple storage
 			 */
 			class Storage {
 				constructor() {
@@ -76,7 +75,6 @@ describe('cachify-wrapper', () => {
 
 			/**
 			 * @ignore
-			 * @description simple storage
 			 */
 			class Storage {
 				constructor() {
@@ -176,9 +174,7 @@ describe('cachify-wrapper', () => {
 
 	it('set lock before request is invoked & second request will wait until lock expired', () => {
 		let count = 0;
-		const fn = (a, cb) => {
-			setTimeout(() => cb(null, count++), 100);
-		};
+		const fn = (a, cb) => setTimeout(() => cb(null, count++), 100);
 
 		const fnCached = testee(fn, undefined, {expire: 1000, lock: 250, retries: 5});
 		const fnPromisified = promisify(fnCached);
@@ -230,37 +226,11 @@ describe('cachify-wrapper', () => {
 
 		/**
 		 * @ignore
-		 * @description simple storage
 		 */
-		class Storage {
-			constructor() {
-				this.data = new Map();
-				this.timers = new Map();
-			}
-
-			get(key, cb) {
-				return cb(null, this.data.get(key));
-			}
-
+		class Storage extends InMemoryStorageCb {
 			set(key, value, ttl, cb) {
 				sets++;
-				if (this.timers.has(key)) {
-					clearTimeout(this.timers.get(key));
-					this.data.delete(key);
-				}
-				this.data.set(key, value);
-				if (ttl > 0) {
-					const timer = setTimeout(() => {
-						clearTimeout(timer);
-						this.data.delete(key);
-					}, ttl);
-					this.timers.set(key, timer);
-				}
-				cb(null, true);
-			}
-
-			del(key, cb) {
-				return cb(null, this.data.delete(key));
+				super.set(key, value, ttl, cb);
 			}
 		}
 
@@ -279,37 +249,11 @@ describe('cachify-wrapper', () => {
 
 		/**
 		 * @ignore
-		 * @description simple storage
 		 */
-		class Storage {
-			constructor() {
-				this.data = new Map();
-				this.timers = new Map();
-			}
-
-			get(key, cb) {
-				return cb(null, this.data.get(key));
-			}
-
+		class Storage extends InMemoryStorageCb {
 			set(key, value, ttl, cb) {
 				sets++;
-				if (this.timers.has(key)) {
-					clearTimeout(this.timers.get(key));
-					this.data.delete(key);
-				}
-				this.data.set(key, value);
-				if (ttl > 0) {
-					const timer = setTimeout(() => {
-						clearTimeout(timer);
-						this.data.delete(key);
-					}, ttl);
-					this.timers.set(key, timer);
-				}
-				cb(null, true);
-			}
-
-			del(key, cb) {
-				return cb(null, this.data.delete(key));
+				super.set(key, value, ttl, cb);
 			}
 		}
 
@@ -321,22 +265,28 @@ describe('cachify-wrapper', () => {
 		return fnPromisified(1).then(() => expect(sets).to.be.equal(2));
 	});
 
-	it('`retries` parameter set max retries number during lock time () ', function () {
-		this.timeout(10000)
+	it('`retries` parameter set max retries number during lock time', () => {
 		let count = 0;
 		let retries = 0;
-		const fn = (a, cb) => setTimeout(() => cb(null, count += a), 1000);
+
+		const fn = (a, cb) => setTimeout(() => {
+			count += a;
+			cb(null, count);
+		}, 500);
 
 		const RETRIES = 10;
 
+		/**
+		 * @ignore
+		 */
 		class InMemoryStorageWrapped extends InMemoryStorageCb {
 			get(key, cb) {
 				retries++;
-				return cb(null, this._cache.get(key));
+				super.get(key, cb);
 			}
 		}
 
-		const fnCached = testee(fn, new InMemoryStorageWrapped(), {lock: 1100, retries: RETRIES});
+		const fnCached = testee(fn, new InMemoryStorageWrapped(), {lock: 600, retries: RETRIES});
 		const fnPromisified = promisify(fnCached);
 
 		fnPromisified(1);
@@ -348,7 +298,7 @@ describe('cachify-wrapper', () => {
 			.then(() => expect(retries).to.be.gte(RETRIES).and.to.be.lte(RETRIES + 2));
 	});
 
-	it('hasher always returns `z`, fn invokes once', () => {
+	it('if hasher always returns `z`, fn invokes once with any input data', () => {
 		let count = 0;
 		const fn = (a, cb) => cb(null, count++);
 
@@ -611,11 +561,10 @@ describe('cachify-wrapper', () => {
 	describe('bad cache', () => {
 		/**
 		 * @ignore
-		 * @description slow get
 		 */
 		class InMemoryStorageWithDelayedGet extends InMemoryStorageCb {
 			get(key, cb) {
-				return setTimeout(() => cb(null, this._cache.get(key)), 100);
+				setTimeout(() => super.get(key, cb), 100);
 			}
 		}
 
@@ -637,7 +586,6 @@ describe('cachify-wrapper', () => {
 
 		/**
 		 * @ignore
-		 * @description invalid get
 		 */
 		class InMemoryStorageErrorReadWrapper extends InMemoryStorageCb {
 			get(key, cb) {
@@ -662,7 +610,6 @@ describe('cachify-wrapper', () => {
 
 		/**
 		 * @ignore
-		 * @description invalid set
 		 */
 		class InMemoryStorageErrorWriteWrapper extends InMemoryStorageCb {
 			set(key, value, ttl, cb) {
