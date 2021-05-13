@@ -301,6 +301,33 @@ describe('cachify-wrapper', () => {
 		return fnPromisified(1).then(() => expect(sets).to.be.equal(2));
 	});
 
+	it('`retries` parameter set max retries number during lock time () ', function () {
+		this.timeout(10000)
+		let count = 0;
+		let retries = 0;
+		const fn = (a, cb) => setTimeout(() => cb(null, count += a), 1000);
+
+		const RETRIES = 10;
+
+		class InMemoryStorageWrapped extends InMemoryStorageCb {
+			get(key, cb) {
+				retries++;
+				return cb(null, this._cache.get(key));
+			}
+		}
+
+		const fnCached = testee(fn, new InMemoryStorageWrapped(), {lock: 1100, retries: RETRIES});
+		const fnPromisified = promisify(fnCached);
+
+		fnPromisified(1);
+
+		return sleep(25)()
+			// Прои получении ответа из кеша получит блокировку и будет повторно опрашивать кеш
+			.then(() => fnPromisified(1))
+			.then(() => expect(count).to.be.gte(1))
+			.then(() => expect(retries).to.be.gte(RETRIES).and.to.be.lte(RETRIES + 2));
+	});
+
 	it('hasher always returns `z`, fn invokes once', () => {
 		let count = 0;
 		const fn = (a, cb) => cb(null, count++);
@@ -371,32 +398,6 @@ describe('cachify-wrapper', () => {
 			.then(() => fnPromisified(123))
 			.catch((error) => error.message)
 			.then((response) => expect(response).to.be.equal('Calculation error'));
-	});
-
-	it('latency & retries can be used to set lock timeout', () => {
-		let count = 0;
-		const fn = (a, cb) => setTimeout(() => cb(null, ++count), 100);
-
-		const fnCached = testee(fn, undefined, {expire: 1000, retries: 0});
-		const fnPromisified = promisify(fnCached);
-
-		const p1 = sleep(0)()
-			// Первый запрос
-			.then(() => fnPromisified(123))
-			.then((result) => expect(result).to.be.equal(1))
-			// Получит ответ из кеша
-			.then(() => fnPromisified(123))
-			.then((result) => expect(result).to.be.equal(1));
-
-		const p2 = sleep(10)()
-			// Не получит ответ вовремя и выполнит повторный запрос
-			.then(() => fnPromisified(123))
-			.then((result) => expect(result).to.be.equal(2))
-			// Получит ответ от второго запроса
-			.then(() => fnPromisified(123))
-			.then((result) => expect(result).to.be.equal(2));
-
-		return Promise.all([p1, p2]).then(() => expect(count).to.be.equal(2));
 	});
 
 	it('cache erroneous state to reduce load', () => {
