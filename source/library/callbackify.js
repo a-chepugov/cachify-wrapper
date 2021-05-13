@@ -1,15 +1,15 @@
 /**
  * @ignore
- * @description Converts promise returning function into `callback-last / error-first` style function
- * @param {function(): Promise<*>} fn
+ * @description Converts function into `callback-last / error-first` style function
+ * @param {function} fn
  * @return {function}
  */
 function callbackify(fn) {
 	return function() {
-		const cb = arguments[arguments.length - 1];
-		return fn
-			.apply(this, Array.prototype.slice.call(arguments, 0, -1))
-			// @ts-ignore
+		const cb = Array.prototype.slice.call(arguments, -1)[0];
+		return Promise
+			.resolve(Array.prototype.slice.call(arguments, 0, -1))
+			.then((args) => fn.apply(this, args))
 			.then((response) => cb(null, response), cb);
 	};
 }
