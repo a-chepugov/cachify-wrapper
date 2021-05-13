@@ -156,7 +156,7 @@ const callback = (
 
 				if (error) {
 					return (lock) ?
-						set.call(storage, key, Record.locked(error).pack(), lock, calculate) :
+						set.call(storage, key, Record.empty().block().pack(), lock, calculate) :
 						calculate();
 				} else {
 					const now = Date.now();
@@ -169,7 +169,7 @@ const callback = (
 						return calculate();
 					} else {
 						return (lock) ?
-							set.call(storage, key, Record.locked(record.error, record.value).pack(), lock, calculate) :
+							set.call(storage, key, record.block().pack(), lock, calculate) :
 							calculate();
 					}
 				}

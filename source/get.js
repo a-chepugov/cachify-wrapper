@@ -49,7 +49,7 @@ const onGetWithLocksFactory = (storage, lock, latency, retries, key, cb) =>
 		if (packed) {
 			const record = Record.unpack(packed);
 			if (record.lock) {
-				if (lock && retries > 0 && (record.timestamp + lock > Date.now())) {
+				if (lock && retries > 0 && (record.lock + lock > Date.now())) {
 					setTimeout(() => storage.get(key, onGetWithLocksFactory(storage, lock, latency, retries - 1, key, cb)), latency);
 					return;
 				} else {
