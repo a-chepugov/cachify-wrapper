@@ -172,11 +172,27 @@ describe('cachify-wrapper', () => {
 			.then(() => expect(count).to.be.equal(1));
 	});
 
+	it('use default expire time if undefined', () => {
+		let count = 0;
+		const fn = (a, cb) => cb(null, count++);
+
+		const fnCached = testee(fn);
+		const fnPromisified = promisify(fnCached);
+
+		return Promise.resolve()
+			.then(() => fnPromisified(1))
+			.then(() => fnPromisified(1))
+			.then(() => expect(count).to.be.equal(1))
+			.then(() => sleep(1000)())
+			.then(() => fnPromisified(1))
+			.then(() => expect(count).to.be.equal(2));
+	});
+
 	it('set lock before request is invoked & second request will wait until lock expired', () => {
 		let count = 0;
 		const fn = (a, cb) => setTimeout(() => cb(null, count++), 100);
 
-		const fnCached = testee(fn, undefined, {expire: 1000, lock: 250, retries: 5});
+		const fnCached = testee(fn, undefined, {lock: 500});
 		const fnPromisified = promisify(fnCached);
 
 		const p1 = sleep(0)().then(() => fnPromisified(1));
@@ -207,8 +223,8 @@ describe('cachify-wrapper', () => {
 		 * @ignore
 		 */
 		class InMemoryStorageWrapped extends InMemoryStorageCb {
-			get(key, cb) {
-				setTimeout(() => super.get(key, cb), 50);
+			set(key, value, ttl, cb) {
+				setTimeout(() => super.set(key, value, ttl, cb), 50);
 			}
 		}
 
