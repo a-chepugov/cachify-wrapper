@@ -79,7 +79,7 @@ const callback = (
 	stale = stale > 0 ? Math.floor(stale) : 0;
 	ttl = ttl > (expire + stale) ? Math.floor(ttl) : (expire + stale);
 
-	let latency = expire > 0 && retries > 0 ? Math.ceil(expire / retries) : 0;
+	let latency = lock > 0 && retries > 0 ? Math.ceil(lock / retries) : 0;
 	latency = Number.isFinite(latency) ? latency : MAX_TIMEOUT;
 
 	const errorTTL = error > 0 ? Math.floor(error) : 0;
