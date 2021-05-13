@@ -161,7 +161,7 @@ const callback = (
 				} else {
 					const now = Date.now();
 					if (
-						(!record.error && (record.timestamp + expire > now)) ||
+						(!record.error && (record.timestamp + expire + spread > now)) ||
 						(record.error && (record.timestamp + errorTTL > now))
 					) {
 						return cb(record.error, record.value);
