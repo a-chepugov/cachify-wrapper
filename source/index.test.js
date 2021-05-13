@@ -328,6 +328,47 @@ describe('cachify-wrapper', () => {
 		return Promise.all([p1, p2, p3]).then(() => expect(count).to.be.equal(1));
 	});
 
+	it('all params passed to hasher', () => {
+		let count = 0;
+		const fn = (...args) => args[args.length - 1](null, count++);
+
+		const fnCached = testee(fn, undefined, {expire: 1000});
+		const fnPromisified = promisify(fnCached);
+
+		return Promise.all([
+			fnPromisified(1),
+			fnPromisified(2),
+			fnPromisified(3),
+			fnPromisified(1, 1),
+			fnPromisified(1, 2),
+			fnPromisified(1, 3),
+			fnPromisified(1, 1, 1),
+			fnPromisified(1, 1, 2),
+			fnPromisified(1, 1, 3),
+			fnPromisified(1, 1, 1, 1),
+			fnPromisified(1, 1, 1, 2),
+			fnPromisified(1, 1, 1, 3),
+			fnPromisified(1, 1, 1, 1, 1),
+			fnPromisified(1, 1, 1, 1, 2),
+			fnPromisified(1, 1, 1, 1, 3),
+			sleep(100)().then(() => fnPromisified(1)),
+			sleep(100)().then(() => fnPromisified(2)),
+			sleep(100)().then(() => fnPromisified(3)),
+			sleep(100)().then(() => fnPromisified(1, 1)),
+			sleep(100)().then(() => fnPromisified(1, 2)),
+			sleep(100)().then(() => fnPromisified(1, 3)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1)),
+			sleep(100)().then(() => fnPromisified(1, 1, 2)),
+			sleep(100)().then(() => fnPromisified(1, 1, 3)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 1)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 2)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 3)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 1)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 2)),
+			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 3)),
+		]).then(() => expect(count).to.be.equal(15));
+	});
+
 	it('function will invoke again before using stale data', () => {
 		let counter = 0;
 		const fn = (a, cb) => {

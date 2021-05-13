@@ -117,7 +117,7 @@ const callback = (
 		 * @type {CB<V>}
 		 */
 		const cb = args.pop();
-		const key = hasher(...args);
+		const key = hasher(args);
 		return get(key,
 			/**
 			 * @ignore
@@ -182,7 +182,7 @@ const callback = (
 		 * @type {CB<V>}
 		 */
 		const cb = args.pop();
-		const key = hasher(...args);
+		const key = hasher(args);
 
 		return get(key,
 			/**
@@ -215,7 +215,7 @@ const callback = (
 		 * @type {V}
 		 */
 		const value = args.pop();
-		return set.call(storage, hasher(...args), Record.of(value).pack(), ttl, cb);
+		return set.call(storage, hasher(args), Record.of(value).pack(), ttl, cb);
 	};
 	/** @ts-ignore */
 	wrapped.del = (...args) => {
@@ -224,7 +224,7 @@ const callback = (
 		 * @type {CB<boolean>}
 		 */
 		const cb = args.pop();
-		return del.call(storage, hasher(...args), cb);
+		return del.call(storage, hasher(args), cb);
 	};
 
 	return wrapped;
