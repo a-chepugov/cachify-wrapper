@@ -72,11 +72,11 @@ const callback = (
 	const storageTimeout = storageConfig.timeout > 0 ? Math.floor(storageConfig.timeout) : Infinity;
 	const sourceTimeout = sourceConfig.timeout > 0 ? Math.floor(sourceConfig.timeout) : Infinity;
 
-	expire = expire > 0 ? Math.floor(expire) : 1000;
-	spread = spread > 0 ? Math.floor(spread) : Math.floor(expire / 1000);
-	lock = lock > 0 ? Math.floor(lock) : 0;
-	retries = retries > 0 ? Math.floor(retries) : 1;
-	stale = stale > 0 ? Math.floor(stale) : 0;
+	expire = expire >= 0 ? Math.floor(expire) : 1000;
+	spread = spread >= 0 ? Math.floor(spread) : Math.floor(expire / 1000);
+	lock = lock >= 0 ? Math.floor(lock) : 0;
+	retries = retries >= 0 ? Math.floor(retries) : 1;
+	stale = stale >= 0 ? Math.floor(stale) : 0;
 	ttl = ttl > (expire + stale) ? Math.floor(ttl) : (expire + stale);
 
 	let latency = lock > 0 && retries > 0 ? Math.ceil(lock / retries) : 0;
