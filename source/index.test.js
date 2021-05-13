@@ -203,6 +203,26 @@ describe('cachify-wrapper', () => {
 		return Promise.all([p0, p1]).then(() => expect(count).to.be.equal(2));
 	});
 
+	it('ineffective locking on slow cache', () => {
+		let count = 0;
+		const fn = (a, cb) => setTimeout(() => cb(null, count++), 100);
+
+		/**
+		 * @ignore
+		 */
+		class InMemoryStorageWrapped extends InMemoryStorageCb {
+			get(key, cb) {
+				setTimeout(() => super.get(key, cb), 50);
+			}
+		}
+
+		const fnCached = testee(fn, new InMemoryStorageWrapped(), {lock: 250});
+		const fnPromisified = promisify(fnCached);
+
+		return Promise.all([fnPromisified(1), fnPromisified(1), fnPromisified(1)])
+			.then(() => expect(count).to.be.equal(3));
+	});
+
 	it('no locks if no lock time', () => {
 		const fn = (a, cb) => setTimeout(() => cb(null, a), 50);
 
