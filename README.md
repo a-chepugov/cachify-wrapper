@@ -10,7 +10,7 @@ Wraps a function with a caching layer
 
 #### Parameters
 
-*   `fn` **function (...any): any** `callback-last` style function
+*   `fn` **[function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)** `callback-last` style function
 *   `storage` **[Storage](#storage)\<K, [RecordPacked](#recordpacked)\<V>>** cache storage (optional, default `InMemoryStorageCb`)
 *   `options` **[Options](#options)**  (optional, default `{}`)
 *   `hasher` **[Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)** creates key for KV-storage from `fn` arguments (optional, default `JSON.stringify`)
@@ -47,7 +47,7 @@ cached.set(2, 'manual value', 1000, () =>
 	}));
 ```
 
-Returns **function (...any): any**
+Returns **[function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)**
 
 ### promise
 
@@ -93,6 +93,12 @@ Type: [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Globa
 *   `retries` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** number of storage requests passes before `fn` call
 *   `error` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** ttl for erroneous state cache (prevents frequent call of `fn`)
 *   `debug` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** debug activation flag
+
+### CacheAbsentError
+
+**Extends Error**
+
+no cache error
 
 ### Functions
 
