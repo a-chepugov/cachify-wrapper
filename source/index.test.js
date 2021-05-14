@@ -423,8 +423,8 @@ describe('cachify-wrapper', () => {
 			.then(() => fnPromisified(123))
 			.then(() => sleep(50)())
 			.then(() => fnPromisified(123))
-			.catch((error) => error.message)
-			.then((response) => expect(response).to.be.equal('Calculation error'));
+			.catch((error) => error)
+			.then((response) => expect(response).to.have.property('message', 'Calculation error'));
 	});
 
 	it('cache erroneous state to reduce load', () => {
@@ -436,12 +436,12 @@ describe('cachify-wrapper', () => {
 
 		return Promise.resolve()
 			.then(() => fnPromisified(1))
-			.catch((error) => error.message)
-			.then((response) => expect(response).to.be.equal('1'))
+			.catch((error) => error)
+			.then((response) => expect(response).to.have.property('message', '1'))
 			.then(() => sleep(25)())
 			.then(() => fnPromisified(1))
-			.catch((error) => error.message)
-			.then((response) => expect(response).to.be.equal('1'))
+			.catch((error) => error)
+			.then((response) => expect(response).to.have.property('message', '1'))
 			.then(() => expect(count).to.be.equal(1));
 	});
 
@@ -454,12 +454,53 @@ describe('cachify-wrapper', () => {
 
 		return Promise.resolve()
 			.then(() => fnPromisified(1))
-			.catch((error) => error.message)
+			.catch((error) => error)
 			.then(() => sleep(50)())
 			.then(() => fnPromisified(1))
-			.catch((error) => error.message)
+			.catch((error) => error)
 			.then(() => expect(count).to.be.equal(2));
 	});
+
+	describe('pass this context', () => {
+		it('callback', () => {
+			const context = {a: 1};
+
+			/**
+			@param {CB<any>} cb
+			 */
+			function fn(cb) {
+				cb(null, this);
+			}
+
+			const fnCached = testee(fn);
+
+			return Promise.resolve()
+				.then(() => {
+					return fnCached.call(context, (_error, result) => {
+						expect(result).to.be.equal(context);
+					});
+				});
+		});
+
+		it('promise', () => {
+			const context = {a: 1};
+
+			/**
+			@param {CB<any>} cb
+			 */
+			function fn() {
+				return this;
+			}
+
+			const fnPromisified = testeePromise(fn);
+
+			return fnPromisified.call(context)
+				.then((result) => {
+					expect(result).to.be.equal(context);
+				});
+		});
+	});
+
 	describe('direct access methods', () => {
 		it('`get` method allow to get value from cache storage directly', () => {
 			const fn = (a, cb) => cb(null, a);
@@ -504,33 +545,11 @@ describe('cachify-wrapper', () => {
 		});
 	});
 
-	it('pass this context', () => {
-		const context = {a: 1};
-
-		/**
-			@param {CB<any>} cb
-		 */
-		function fn(cb) {
-			cb(null, this);
-		}
-
-		const fnCached = testee(fn);
-
-		return Promise.resolve()
-			.then(() => {
-				return fnCached.call(context, (_error, result) => {
-					expect(result).to.be.deep.equal(context);
-				});
-			});
-	});
-
 	describe('multiply wrappers', () => {
 		it('data can be shared', () => {
 			let counter = 0;
 
-			const fn = async() => {
-				return counter++;
-			};
+			const fn = async() => counter++;
 			const storage = new InMemoryStorageCb();
 
 			const fnCached1 = testeePromise(fn, storage, {expire: 1000, lock: 50});
@@ -545,9 +564,7 @@ describe('cachify-wrapper', () => {
 		it('data will be present in the long-playing wrapper after it expires in the short-playing', () => {
 			let counter = 0;
 
-			const fn = async() => {
-				return counter++;
-			};
+			const fn = async() => counter++;
 			const storage = new InMemoryStorageCb();
 
 			const fnCached1 = testeePromise(fn, storage, {expire: 50, ttl: 1000, lock: 50});
@@ -563,9 +580,7 @@ describe('cachify-wrapper', () => {
 		it('no data will be share without proper `ttl` parameter value', () => {
 			let counter = 0;
 
-			const fn = async() => {
-				return counter++;
-			};
+			const fn = async() => counter++;
 			const storage = new InMemoryStorageCb();
 
 			const fnCached1 = testeePromise(fn, storage, {expire: 50, ttl: 75, lock: 50});
@@ -581,9 +596,7 @@ describe('cachify-wrapper', () => {
 		it('the short-playing wrapper will require updating first', () => {
 			let counter = 0;
 
-			const fn = async() => {
-				return counter++;
-			};
+			const fn = async() => counter++;
 			const storage = new InMemoryStorageCb();
 
 			const fnCached1 = testeePromise(fn, storage, {expire: 100, ttl: 1000, lock: 50});
@@ -676,16 +689,16 @@ describe('cachify-wrapper', () => {
 	});
 
 	describe('bad cache', () => {
-		/**
-		 * @ignore
-		 */
-		class InMemoryStorageWithDelayedGet extends InMemoryStorageCb {
-			get(key, cb) {
-				setTimeout(() => super.get(key, cb), 100);
-			}
-		}
-
 		it('on result reading from cache storage timeout fail function will called on second run', () => {
+			/**
+			 * @ignore
+			 */
+			class InMemoryStorageWithDelayedGet extends InMemoryStorageCb {
+				get(key, cb) {
+					setTimeout(() => super.get(key, cb), 100);
+				}
+			}
+
 			let count = 0;
 			const fn = (cb) => cb(null, count++);
 			const cache = new InMemoryStorageWithDelayedGet();
@@ -701,16 +714,16 @@ describe('cachify-wrapper', () => {
 				.then(() => expect(count).to.be.equal(2));
 		});
 
-		/**
-		 * @ignore
-		 */
-		class InMemoryStorageErrorReadWrapper extends InMemoryStorageCb {
-			get(key, cb) {
-				return cb(new Error('get error'));
-			}
-		}
-
 		it('on result reading from cache storage fail function will called on second run', () => {
+			/**
+			 * @ignore
+			 */
+			class InMemoryStorageErrorReadWrapper extends InMemoryStorageCb {
+				get(key, cb) {
+					return cb(new Error('get error'));
+				}
+			}
+
 			const cache = new InMemoryStorageErrorReadWrapper();
 			let count = 0;
 			const fn = (cb) => cb(null, count++);
@@ -725,16 +738,16 @@ describe('cachify-wrapper', () => {
 				.then(() => expect(count).to.be.equal(2));
 		});
 
-		/**
-		 * @ignore
-		 */
-		class InMemoryStorageErrorWriteWrapper extends InMemoryStorageCb {
-			set(key, value, ttl, cb) {
-				return cb(new Error('set error'));
-			}
-		}
-
 		it('on result saving into cache storage fail function will called on second run', () => {
+			/**
+			 * @ignore
+			 */
+			class InMemoryStorageErrorWriteWrapper extends InMemoryStorageCb {
+				set(key, value, ttl, cb) {
+					return cb(new Error('set error'));
+				}
+			}
+
 			const cache = new InMemoryStorageErrorWriteWrapper();
 			let count = 0;
 			const fn = (cb) => cb(null, count++);
@@ -749,5 +762,4 @@ describe('cachify-wrapper', () => {
 				.then(() => expect(count).to.be.equal(2));
 		});
 	});
-})
-;
+});
