@@ -460,50 +460,48 @@ describe('cachify-wrapper', () => {
 			.catch((error) => error.message)
 			.then(() => expect(count).to.be.equal(2));
 	});
+	describe('direct access methods', () => {
+		it('`get` method allow to get value from cache storage directly', () => {
+			const fn = (a, cb) => cb(null, a);
 
-	it('`get` method allow to get value from cache storage directly', () => {
-		let count = 0;
-		const fn = (a, cb) => cb(null, count++);
+			const fnCached = testee(fn, undefined, {expire: 1000});
+			const fnPromisified = promisify(fnCached);
+			const get = promisify(fnCached.get).bind(fnCached);
 
-		const fnCached = testee(fn, undefined, {expire: 1000});
-		const fnPromisified = promisify(fnCached);
-		const get = promisify(fnCached.get).bind(fnCached);
+			return Promise.resolve()
+				.then(() => fnPromisified(1))
+				.then(() => get(1))
+				.then((response) => expect(response).to.be.equal(1));
+		});
 
-		return Promise.resolve()
-			.then(() => fnPromisified(1))
-			.then((response) => expect(response).to.be.equal(0))
-			.then(() => get(1))
-			.then((response) => expect(response).to.be.equal(0))
-			.then(() => expect(count).to.be.equal(1));
-	});
+		it('`set` method put value to cache storage without original function call', () => {
+			let count = 0;
+			const fn = (a, cb) => cb(null, count++);
 
-	it('`set` method put value to cache storage without original function call', () => {
-		let count = 0;
-		const fn = (a, cb) => cb(null, count++);
+			const fnCached = testee(fn, undefined, {expire: 1000});
+			const fnPromisified = promisify(fnCached);
+			fnCached.set(1, 123, 1000, new Function());
 
-		const fnCached = testee(fn, undefined, {expire: 1000});
-		const fnPromisified = promisify(fnCached);
-		fnCached.set(1, 123, 1000, new Function());
+			return Promise.resolve()
+				.then(() => fnPromisified(1))
+				.then((response) => expect(response).to.be.equal(123))
+				.then(() => expect(count).to.be.equal(0));
+		});
 
-		return Promise.resolve()
-			.then(() => fnPromisified(1))
-			.then((response) => expect(response).to.be.equal(123))
-			.then(() => expect(count).to.be.equal(0));
-	});
+		it('`del` method remove cache from storage and force function call early', () => {
+			let count = 0;
+			const fn = (a, cb) => cb(null, count++);
 
-	it('`del` method remove cache from storage and force function call early', () => {
-		let count = 0;
-		const fn = (a, cb) => cb(null, count++);
+			const fnCached = testee(fn, undefined, {expire: 1000});
+			const fnPromisified = promisify(fnCached);
+			const del = promisify(fnCached.del).bind(fnCached);
 
-		const fnCached = testee(fn, undefined, {expire: 1000});
-		const fnPromisified = promisify(fnCached);
-		const del = promisify(fnCached.del).bind(fnCached);
-
-		return Promise.resolve()
-			.then(() => fnPromisified(1))
-			.then(() => del(1))
-			.then(() => fnPromisified(1))
-			.then(() => expect(count).to.be.equal(2));
+			return Promise.resolve()
+				.then(() => fnPromisified(1))
+				.then(() => del(1))
+				.then(() => fnPromisified(1))
+				.then(() => expect(count).to.be.equal(2));
+		});
 	});
 
 	it('pass this context', () => {
