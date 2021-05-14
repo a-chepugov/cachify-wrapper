@@ -198,10 +198,11 @@ const callback = (
 							calculateRecord.call(this, ...args, calculateRecordHandler);
 					} else {
 						const now = Date.now();
-						if (record.error && record.timestamp + errorTTL > now) {
+						if (
+							(record.error && record.timestamp + errorTTL > now) ||
+							(!record.error && record.timestamp + expireTTL > now)
+						) {
 							return cb(record.error, record.value);
-						} else if (record.timestamp + expireTTL > now) {
-							return cb(null, record.value);
 						} else if (record.lock && lock && retries > 0 && record.lock + lock > now) {
 							setTimeout(() => recursive(retries - 1), latency);
 							// eslint-disable-next-line no-useless-return

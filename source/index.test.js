@@ -621,6 +621,25 @@ describe('cachify-wrapper', () => {
 				})
 				.then(() => expect(counter).to.be.equal(2));
 		});
+
+		it('ignore error record in short-playing wrapper', () => {
+			const storage = new InMemoryStorageCb();
+			let counter = 0;
+			const fn = () => Promise.reject(new Error(String(counter++)));
+
+			const fnCached1 = testeePromise(fn, storage, {error: 100});
+			const fnCached2 = testeePromise(fn, storage, {error: 500});
+
+			return fnCached2()
+				.catch((error) => error)
+				.then(() => sleep(250)())
+				.then(() => fnCached1())
+				.catch((error) => error)
+				.then(() => fnCached2())
+				.catch((error) => error)
+				.then((result) => expect(result).to.have.property('message', '1'))
+				.then(() => expect(counter).to.be.equal(2));
+		});
 	});
 
 	describe('bad source', () => {
