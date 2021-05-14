@@ -55,4 +55,25 @@ describe('Serializable', function() {
 		return sleep(100)()
 			.then(() => expect(Array.from(i.keys()).length).to.equal(0));
 	});
+
+	it('import exported', async function() {
+		const dump = new Testee()
+			.set(1, 1)
+			.expire(1, 0)
+			.set(2, 2)
+			.expire(2, 100)
+			.set(3, 3)
+			.expire(3, 200)
+			.set(4, 4)
+			.expire(4, Infinity)
+			.export();
+
+		return sleep(100)()
+			.then(() => new Testee().import(dump))
+			.then((i) => {
+				expect(Array.from(i.keys()).length).to.equal(2);
+				return sleep(100)(i);
+			})
+			.then((i) => expect(Array.from(i.keys()).length).to.equal(1));
+	});
 });

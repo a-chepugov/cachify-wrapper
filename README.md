@@ -163,6 +163,13 @@ Type: [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Globa
 
 **Extends InMemoryStorage**
 
+#### expire
+
+##### Parameters
+
+*   `key` **K**
+*   `ttl` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)**
+
 #### export
 
 Returns **Iterable\<KRecordTuple\<K, V>>**

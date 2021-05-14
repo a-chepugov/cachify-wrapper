@@ -71,21 +71,22 @@ class InMemoryStorage {
 	 * @param {number} ttl
 	 */
 	expire(key, ttl) {
-		if (this._timers.has(key)) {
-			clearTimeout(this._timers.get(key));
-		}
-		if (Number.isFinite(ttl)) {
-			const record = this._data.get(key);
-			if (typeof record === 'object' && record) {
-				record.ttl = ttl;
+		if (this._data.has(key)) {
+			if (this._timers.has(key)) {
+				clearTimeout(this._timers.get(key));
+				this._timers.delete(key);
 			}
-			this._data.set(key, record);
-			const timer = setTimeout(this.del.bind(this), ttl, key, ttl);
-			/**
-			 * @ignore
-			 * @ts-ignore
-			 */
-			this._timers.set(key, timer);
+			if (Number.isFinite(ttl)) {
+				const timer = setTimeout(() => {
+					this._timers.delete(key);
+					this.del(key);
+				}, ttl);
+				/**
+				 * @ignore
+				 * @ts-ignore
+				 */
+				this._timers.set(key, timer);
+			}
 		}
 		return this;
 	}
