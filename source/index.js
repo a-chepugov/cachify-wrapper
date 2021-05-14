@@ -285,8 +285,8 @@ exports.default = callback;
 /**
  * @template K
  * @template V
- * @description Wraps an async function with a caching layer
- * @param {function(...*): Promise<*>} fn
+ * @description Wraps a function with a caching layer
+ * @param {function} fn
  * @param {Storage<K, RecordPacked<V>>} [storage]
  * @param {Options} [options]
  * @param {Function} [hasher]
@@ -299,9 +299,17 @@ exports.default = callback;
  * const p1 = cached(1).then((payload) => console.info(payload)); // Invokes request
  * const p2 = p1.then(() => cached(1).then((payload) => console.info(payload))); // Takes cached result
  */
-exports.promise = (fn, storage, options, hasher) =>
+exports.promise = (fn, storage, options, hasher) => {
+	const wrapped = callback(callbackify(fn), storage, options, hasher);
+	const result = promisify(wrapped);
 	// @ts-ignore
-	promisify(callback(callbackify(fn), storage, options, hasher));
+	result.get = promisify(wrapped.get);
+	// @ts-ignore
+	result.set = promisify(wrapped.set);
+	// @ts-ignore
+	result.del = promisify(wrapped.del);
+	return result;
+};
 
 /**
  * @typedef {Object} Options

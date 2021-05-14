@@ -1,5 +1,5 @@
 export default callback;
-export function promise<K, V>(fn: (...args: any[]) => Promise<any>, storage?: Storage<K, RecordPacked<V>>, options?: Options, hasher?: Function): (...args: any[]) => Promise<any>;
+export function promise<K, V>(fn: Function, storage?: Storage<K, RecordPacked<V>>, options?: Options, hasher?: Function): (...args: any[]) => Promise<any>;
 export type Options = {
     storage?: {
         timeout?: number;

@@ -51,11 +51,11 @@ Returns **[function](https://developer.mozilla.org/docs/Web/JavaScript/Reference
 
 ### promise
 
-Wraps an async function with a caching layer
+Wraps a function with a caching layer
 
 #### Parameters
 
-*   `fn` **function (...any): [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)\<any>**
+*   `fn` **[function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)**
 *   `storage` **[Storage](#storage)\<K, [RecordPacked](#recordpacked)\<V>>?**
 *   `options` **[Options](#options)?**
 *   `hasher` **[Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)?**
