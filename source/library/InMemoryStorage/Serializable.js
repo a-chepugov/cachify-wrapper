@@ -7,6 +7,23 @@ const {InMemoryStorage, KRecordTuple} = require('./index.js');
  */
 class InMemoryStorageSerializable extends InMemoryStorage {
 	/**
+	 * @param {K} key
+	 * @param {number} ttl
+	 */
+	expire(key, ttl) {
+		if (this._data.has(key)) {
+			if (Number.isFinite(ttl)) {
+				const record = this._data.get(key);
+				record.ttl = ttl;
+				this._data.set(key, record);
+			}
+			return super.expire(key, ttl);
+		} else {
+			return this;
+		}
+	}
+
+	/**
 	 * @return {Iterable<KRecordTuple<K, V>>}
 	 */
 	export() {
