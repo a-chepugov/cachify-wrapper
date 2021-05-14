@@ -73,12 +73,32 @@ export type Options = {
  * @description Wraps a function with a caching layer
  * @template K
  * @template V
- * @param {function(...*): *} fn - `callback-last` style function
+ * @param {function} fn - `callback-last` style function
  * @param {Storage<K, RecordPacked<V>>} [storage=InMemoryStorageCb] - cache storage
  * @param {Options} [options={}]
  * @param {Function} [hasher=JSON.stringify] - creates key for KV-storage from `fn` arguments
- * @return {function(...*): *}
+ * @return {function}
  */
-export function callback<K, V>(fn: (...args: any[]) => any, storage?: Storage<K, RecordPacked<V>>, options?: Options, hasher?: Function): (...args: any[]) => any;
+export function callback<K, V>(fn: Function, storage?: Storage<K, RecordPacked<V>>, options?: Options, hasher?: Function): Function;
 import { Storage } from "./Interfaces/Storage.js";
 import { RecordPacked } from "./library/Record.js";
+/**
+ * @typedef {Object} Options
+ * @property {Object} [storage]
+ * @property {number} [storage.timeout=Infinity] - max storage response time before considering it as failed, and invoking `fn`
+ * @property {Object} [source]
+ * @property {number} [source.timeout=Infinity] - max `fn` response time before considering it as failed
+ * @property {number} [expire=1000] - time to consider cached data expired [in milliseconds]
+ * @property {number} [spread=expire/1000] - expire time spread (prevents simultaneous deletions saved items from storage)
+ * @property {number} [lock=0] - lock timeout (prevents simultaneous concurrent invoke of `fn` at initial period)
+ * @property {number} [stale] - additional ttl for stale data
+ * @property {number} [ttl=expire+stale] - forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
+ * @property {number} [retries=1] - number of storage requests passes before `fn` call
+ * @property {number} [error] - ttl for erroneous state cache (prevents frequent call of `fn`)
+ * @property {boolean} [debug] - debug activation flag
+ */
+/**
+ * @description no cache error
+ */
+export class CacheAbsentError extends Error {
+}

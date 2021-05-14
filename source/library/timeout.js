@@ -11,9 +11,9 @@ exports.TimeoutError = TimeoutError;
 
 /**
  * @ignore
- * @param {function(...*): *} fn
+ * @param {function} fn
  * @param {number} delay
- * @return {function(...*): *} - `callback-last` style function
+ * @return {function} - `callback-last` style function
  */
 function timeout(fn, delay) {
 	/**

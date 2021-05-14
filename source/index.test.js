@@ -597,6 +597,30 @@ describe('cachify-wrapper', () => {
 				.then(() => fnCached1())
 				.then(() => expect(counter).to.be.equal(2));
 		});
+
+		it('datum will be present in long-playing wrapper even during updating for short-playing wrapper', () => {
+			const storage = new InMemoryStorageCb();
+			const LOCK = 500;
+			let counter = 0;
+			const fn = () => new Promise((resolve, reject) => setTimeout(() => resolve(counter++), LOCK));
+
+			const fnCached1 = testeePromise(fn, storage, {expire: 100, ttl: 1000, lock: LOCK});
+			const fnCached2 = testeePromise(fn, storage, {expire: 1000, lock: LOCK});
+
+			return sleep(0)()
+				.then(() => fnCached1())
+				.then(() => sleep(150)())
+				.then(() => {
+					const start = Date.now();
+					return Promise.all([
+						fnCached1(),
+						sleep(25)()
+							.then(() => fnCached2())
+							.then(() => expect(Date.now() - start).to.be.lte(LOCK))
+					]);
+				})
+				.then(() => expect(counter).to.be.equal(2));
+		});
 	});
 
 	describe('bad source', () => {

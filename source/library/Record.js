@@ -41,10 +41,15 @@ class Record {
 	}
 
 	/**
-	 * @param {boolean} value
+	 * @param {number} value
 	 */
 	set lock(value) {
 		this._lock = value;
+	}
+
+	block() {
+		this.lock = Date.now();
+		return this;
 	}
 
 	pack() {
@@ -59,6 +64,14 @@ class Record {
 		if (this.timestamp) pack.t = this.timestamp;
 		if (this.lock) pack.l = this.lock;
 		return pack;
+	}
+
+	/**
+	 * @template V0
+	 * @return {Record<V0>}
+	 */
+	static empty() {
+		return new Record();
 	}
 
 	/**
@@ -91,21 +104,6 @@ class Record {
 
 	/**
 	 * @template V0
-	 * @param {Error} [error]
-	 * @param {V0} [value]
-	 * @return {Record<V0>}
-	 */
-	static locked(error, value) {
-		const record = new Record();
-		record.error = error;
-		record.value = value;
-		record.timestamp = Date.now();
-		record.lock = true;
-		return record;
-	}
-
-	/**
-	 * @template V0
 	 * @param {RecordPacked<V0>} pack
 	 * @return {Record<V0>}
 	 */
@@ -129,5 +127,5 @@ exports.default = Record;
  * @property {string} [e]
  * @property {V} [v]
  * @property {number} [t]
- * @property {boolean} [l]
+ * @property {number} [l]
  */

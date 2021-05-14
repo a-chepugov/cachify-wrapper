@@ -3,7 +3,6 @@ const {Storage} = require('./Interfaces/Storage.js');
 const {Record, RecordPacked} = require('./library/Record.js');
 const random = require('./library/random.js').default;
 const timeout = require('./library/timeout.js').default;
-const {getFactory} = require('./get.js');
 const InMemoryStorageCb = require('./library/InMemoryStorageCb.js').InMemoryStorageCb;
 
 const callbackify = require('./library/callbackify.js').default;
@@ -44,11 +43,11 @@ const MAX_TIMEOUT = 2 ** 30;
  * @description Wraps a function with a caching layer
  * @template K
  * @template V
- * @param {function(...*): *} fn - `callback-last` style function
+ * @param {function} fn - `callback-last` style function
  * @param {Storage<K, RecordPacked<V>>} [storage=InMemoryStorageCb] - cache storage
  * @param {Options} [options={}]
  * @param {Function} [hasher=JSON.stringify] - creates key for KV-storage from `fn` arguments
- * @return {function(...*): *}
+ * @return {function}
  */
 const callback = (
 	fn,
@@ -77,12 +76,15 @@ const callback = (
 	lock = lock >= 0 ? Math.floor(lock) : 0;
 	retries = retries >= 0 ? Math.floor(retries) : 1;
 	stale = stale >= 0 ? Math.floor(stale) : 0;
-	ttl = ttl > (expire + stale) ? Math.floor(ttl) : (expire + stale);
 
 	let latency = lock > 0 && retries > 0 ? Math.ceil(lock / retries) : 0;
 	latency = Number.isFinite(latency) ? latency : MAX_TIMEOUT;
 
+	const expireTTL = expire + spread;
+	const staleTTL = expireTTL + stale;
 	const errorTTL = error > 0 ? Math.floor(error) : 0;
+
+	ttl = ttl > staleTTL ? Math.floor(ttl) : staleTTL;
 
 	/**
 	 * @ignore
@@ -99,81 +101,129 @@ const callback = (
 
 	fn = Number.isFinite(sourceTimeout) ? timeout(fn, sourceTimeout) : fn;
 
-	const get = Number.isFinite(storageTimeout) ?
-		timeout(getFactory(storage, lock, latency, retries), storageTimeout) :
-		getFactory(storage, lock, latency, retries);
+	/**
+	 * @ignore
+	 * @param {...*} args
+	 */
+	function calculateRecord(...args) {
+		const cb = args.pop();
 
-	const set = Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.set;
+		return fn.call(this, ...args,
+			/**
+			 * @ignore
+			 * @param {Error} error
+			 * @param {V} value
+			 */
+			(error, value) =>
+				cb(error, error ? Record.error(error) : Record.of(value)));
+	}
 
-	const del = Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.del;
+	const get = (Number.isFinite(storageTimeout) ? timeout(storage.get, storageTimeout) : storage.get).bind(storage);
+	const set = (Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.set).bind(storage);
+	const del = (Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.del).bind(storage);
+
+	/**
+	 * @ignore
+	 * @param {K} key
+	 * @param {CB<Record<V>>} cb
+	 */
+	const getCachedRecord = (key, cb) => get(
+		key,
+		/**
+		 * @ignore
+		 * @param {Error} error
+		 * @param {RecordPacked<V> | undefined} packed
+		 */
+		(error, packed) => {
+			if (error) {
+				return cb(error, Record.empty());
+			} else if (packed) {
+				return cb(null, Record.unpack(packed));
+			} else {
+				return cb(new CacheAbsentError(String(key)), Record.empty());
+			}
+		});
 
 	/**
 	 * @ignore
 	 * @param {...*} args
 	 */
-	const wrapped = function(...args) {
-		/**
-		 * @ignore
-		 * @type {CB<V>}
-		 */
+	function getWithLockFactory(...args) {
 		const cb = args.pop();
 		const key = hasher(args);
-		return get(key,
-			/**
-			 * @ignore
-			 * @param {Error} error
-			 * @param {Record<V>} record
-			 */
-			(error, record) => {
-				const calculate = () =>
-					fn.call(this, ...args,
-						/**
-						 * @ignore
-						 * @param {Error} calculationError
-						 * @param {*} value
-						 */
-						(calculationError, value) => {
-							if (calculationError) {
-								if (stale && record && !record.error && record.timestamp + expire + stale > Date.now()) {
-									return cb(null, record.value);
-								} else {
-									if (errorTTL) {
-										set.call(storage, key, Record.error(calculationError).pack(), errorTTL, log);
-									}
-									return cb(calculationError);
-								}
-							} else {
-								set.call(storage, key, Record.of(value).pack(), ttl + random(0, spread), log);
-								return cb(calculationError, value);
+
+		/**
+		 * @ignore
+		 * @param {number} retries
+		 */
+		const recursive = (retries) => {
+			return getCachedRecord(
+				key,
+				/**
+				 * @ignore
+				 * @param {Error} error
+				 * @param {Record<V>} record
+				 */
+				(error, record) => {
+					/**
+					 * @ignore
+					 * @param {Error} error
+					 * @param {Record<V>} recordNew
+					 */
+					const calculateRecordHandler = (error, recordNew) => {
+						if (error) {
+							if (stale && record.timestamp + staleTTL > Date.now()) {
+								return cb(null, record.value);
+							} else if (errorTTL) {
+								set(key, recordNew.pack(), errorTTL, log);
 							}
-						});
+						} else {
+							set(key, recordNew.pack(), ttl + random(0, spread), log);
+						}
+						return cb(recordNew.error, recordNew.value);
+					};
 
-				// record reading error
-				// record exists and
-				/// it is with fresh data or error lock
-				/// it is with outdated, but not too much, data and `stale` mode activated
-				/// other variants
+					// error
+					/// storage reading error
+					/// record absent
+					// record exists
+					/// record of error & it is fresh
+					/// record of data & it is fresh
+					/// record of lock & retries > 0
+					/// record of data & it is expired
 
-				if (error) {
-					return (lock) ?
-						set.call(storage, key, Record.locked(error).pack(), lock, calculate) :
-						calculate();
-				} else {
-					const now = Date.now();
-					if (
-						(!record.error && (record.timestamp + expire + spread > now)) ||
-						(record.error && (record.timestamp + errorTTL > now))
-					) {
-						return cb(record.error, record.value);
-					} else if (stale && !record.error && record.timestamp + expire + stale > now) {
-						return calculate();
-					} else {
+					if (error) {
 						return (lock) ?
-							set.call(storage, key, Record.locked(record.error, record.value).pack(), lock, calculate) :
-							calculate();
+							set(key, record.block().pack(), lock, () => calculateRecord.call(this, ...args, calculateRecordHandler)) :
+							calculateRecord.call(this, ...args, calculateRecordHandler);
+					} else {
+						const now = Date.now();
+						if (record.error && record.timestamp + errorTTL > now) {
+							return cb(record.error, record.value);
+						} else if (record.timestamp + expireTTL > now) {
+							return cb(null, record.value);
+						} else if (record.lock && lock && retries > 0 && record.lock + lock > now) {
+							setTimeout(() => recursive(retries - 1), latency);
+							// eslint-disable-next-line no-useless-return
+							return;
+						} else {
+							return (lock) ?
+								set(key, record.block().pack(), lock, () => calculateRecord.call(this, ...args, calculateRecordHandler)) :
+								calculateRecord.call(this, ...args, calculateRecordHandler);
+						}
 					}
-				}
-			});
+				});
+		};
+
+		return recursive;
+	}
+
+	/**
+	 * @ignore
+	 * @param {...*} args
+	 */
+	const wrapped = function() {
+		return getWithLockFactory.apply(this, arguments)(retries);
 	};
 	/** @ts-ignore */
 	wrapped.get = (...args) => {
@@ -183,8 +233,7 @@ const callback = (
 		 */
 		const cb = args.pop();
 		const key = hasher(args);
-
-		return get(key,
+		return getCachedRecord(key,
 			/**
 			 * @ignore
 			 * @param {Error} error
@@ -215,7 +264,7 @@ const callback = (
 		 * @type {V}
 		 */
 		const value = args.pop();
-		return set.call(storage, hasher(args), Record.of(value).pack(), ttl, cb);
+		return set(hasher(args), Record.of(value).pack(), ttl, cb);
 	};
 	/** @ts-ignore */
 	wrapped.del = (...args) => {
@@ -224,7 +273,7 @@ const callback = (
 		 * @type {CB<boolean>}
 		 */
 		const cb = args.pop();
-		return del.call(storage, hasher(args), cb);
+		return del(hasher(args), cb);
 	};
 
 	return wrapped;
@@ -269,3 +318,11 @@ exports.promise = (fn, storage, options, hasher) =>
  * @property {number} [error] - ttl for erroneous state cache (prevents frequent call of `fn`)
  * @property {boolean} [debug] - debug activation flag
  */
+
+/**
+ * @description no cache error
+ */
+class CacheAbsentError extends Error {
+}
+
+exports.CacheAbsentError = CacheAbsentError;
