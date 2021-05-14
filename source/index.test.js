@@ -183,7 +183,7 @@ describe('cachify-wrapper', () => {
 			.then(() => fnPromisified(1))
 			.then(() => fnPromisified(1))
 			.then(() => expect(count).to.be.equal(1))
-			.then(() => sleep(1000)())
+			.then(() => sleep(1001)())
 			.then(() => fnPromisified(1))
 			.then(() => expect(count).to.be.equal(2));
 	});
