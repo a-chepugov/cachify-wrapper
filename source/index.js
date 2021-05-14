@@ -172,7 +172,7 @@ const callback = (
 					 */
 					const calculateRecordHandler = (error, recordNew) => {
 						if (error) {
-							if (stale && record.timestamp + staleTTL > Date.now()) {
+							if (stale && !record.error && record.timestamp + staleTTL > Date.now()) {
 								return cb(null, record.value);
 							} else if (errorTTL) {
 								set(key, recordNew.pack(), errorTTL, log);
