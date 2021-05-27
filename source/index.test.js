@@ -314,59 +314,66 @@ describe('cachify-wrapper', () => {
 			.then(() => expect(retries).to.be.gte(RETRIES).and.to.be.lte(RETRIES + 2));
 	});
 
-	it('if hasher always returns `z`, fn invokes once with any input data', () => {
-		let count = 0;
-		const fn = (a, cb) => cb(null, count++);
+	describe('hasher', () => {
+		it('if hasher always returns `z`, fn invokes once with any input data', () => {
+			let count = 0;
+			const fn = (a, cb) => cb(null, count++);
 
-		const fnCached = testee(fn, undefined, {expire: 1000}, (_) => 'z');
-		const fnPromisified = promisify(fnCached);
+			const fnCached = testee(fn, undefined, {expire: 1000}, (_) => 'z');
+			const fnPromisified = promisify(fnCached);
 
-		const p1 = fnPromisified(1);
-		const p2 = fnPromisified(2);
-		const p3 = fnPromisified(3);
+			const p1 = fnPromisified(1);
+			const p2 = fnPromisified(2);
+			const p3 = fnPromisified(3);
 
-		return Promise.all([p1, p2, p3]).then(() => expect(count).to.be.equal(1));
-	});
+			return Promise.all([p1, p2, p3]).then(() => expect(count).to.be.equal(1));
+		});
 
-	it('all params passed to hasher', () => {
-		let count = 0;
-		const fn = (...args) => args[args.length - 1](null, count++);
+		it('all params passed to hasher', () => {
+			let count = 0;
+			const fn = (...args) => args[args.length - 1](null, count++);
 
-		const fnCached = testee(fn, undefined, {expire: 1000});
-		const fnPromisified = promisify(fnCached);
+			const fnCached = testee(fn, undefined, {expire: 1000});
+			const fnPromisified = promisify(fnCached);
 
-		return Promise.all([
-			fnPromisified(1),
-			fnPromisified(2),
-			fnPromisified(3),
-			fnPromisified(1, 1),
-			fnPromisified(1, 2),
-			fnPromisified(1, 3),
-			fnPromisified(1, 1, 1),
-			fnPromisified(1, 1, 2),
-			fnPromisified(1, 1, 3),
-			fnPromisified(1, 1, 1, 1),
-			fnPromisified(1, 1, 1, 2),
-			fnPromisified(1, 1, 1, 3),
-			fnPromisified(1, 1, 1, 1, 1),
-			fnPromisified(1, 1, 1, 1, 2),
-			fnPromisified(1, 1, 1, 1, 3),
-			sleep(100)().then(() => fnPromisified(1)),
-			sleep(100)().then(() => fnPromisified(2)),
-			sleep(100)().then(() => fnPromisified(3)),
-			sleep(100)().then(() => fnPromisified(1, 1)),
-			sleep(100)().then(() => fnPromisified(1, 2)),
-			sleep(100)().then(() => fnPromisified(1, 3)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1)),
-			sleep(100)().then(() => fnPromisified(1, 1, 2)),
-			sleep(100)().then(() => fnPromisified(1, 1, 3)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 1)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 2)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 3)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 1)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 2)),
-			sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 3)),
-		]).then(() => expect(count).to.be.equal(15));
+			return Promise.all([
+				fnPromisified(1),
+				fnPromisified(2),
+				fnPromisified(3),
+				fnPromisified(1, 1),
+				fnPromisified(1, 2),
+				fnPromisified(1, 3),
+				fnPromisified(1, 1, 1),
+				fnPromisified(1, 1, 2),
+				fnPromisified(1, 1, 3),
+				fnPromisified(1, 1, 1, 1),
+				fnPromisified(1, 1, 1, 2),
+				fnPromisified(1, 1, 1, 3),
+				fnPromisified(1, 1, 1, 1, 1),
+				fnPromisified(1, 1, 1, 1, 2),
+				fnPromisified(1, 1, 1, 1, 3),
+				sleep(100)().then(() => fnPromisified(1)),
+				sleep(100)().then(() => fnPromisified(2)),
+				sleep(100)().then(() => fnPromisified(3)),
+				sleep(100)().then(() => fnPromisified(1, 1)),
+				sleep(100)().then(() => fnPromisified(1, 2)),
+				sleep(100)().then(() => fnPromisified(1, 3)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1)),
+				sleep(100)().then(() => fnPromisified(1, 1, 2)),
+				sleep(100)().then(() => fnPromisified(1, 1, 3)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 1)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 2)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 3)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 1)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 2)),
+				sleep(100)().then(() => fnPromisified(1, 1, 1, 1, 3)),
+			]).then(() => expect(count).to.be.equal(15));
+		});
+
+		it('if hasher is not a functtion throws an Error', () => {
+			const fn = (a, cb) => cb(null, a);
+			expect(() => testee(fn, undefined, {expire: 1000}, 'not a function')).to.throw();
+		});
 	});
 
 	it('function will invoke again before using stale data', () => {

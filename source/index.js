@@ -53,7 +53,7 @@ const callback = (
 	fn,
 	storage = new InMemoryStorageCb(),
 	options = {},
-	hasher,
+	hasher = JSON.stringify,
 ) => {
 	let {
 		source: sourceConfig = {},
@@ -86,11 +86,9 @@ const callback = (
 
 	ttl = ttl > staleTTL ? Math.floor(ttl) : staleTTL;
 
-	/**
-	 * @ignore
-	 * @ts-ignore
-	 */
-	hasher = typeof hasher === 'function' ? hasher : JSON.stringify;
+	if (typeof hasher !== 'function') {
+		throw new Error('hasher must be a function');
+	}
 
 	/**
 	 * @ignore
