@@ -102,3 +102,8 @@ import { RecordPacked } from "./library/Record.js";
  */
 export class CacheAbsentError extends Error {
 }
+import callbackify_1 = require("./library/callbackify.js");
+import callbackify = callbackify_1.default;
+import promisify_1 = require("./library/promisify.js");
+import promisify = promisify_1.default;
+export { Storage, callbackify, promisify };

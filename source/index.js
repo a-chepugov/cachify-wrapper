@@ -335,3 +335,7 @@ class CacheAbsentError extends Error {
 }
 
 exports.CacheAbsentError = CacheAbsentError;
+
+exports.Storage = Storage;
+exports.callbackify = callbackify;
+exports.promisify = promisify;
