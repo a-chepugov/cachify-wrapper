@@ -68,6 +68,10 @@ const callback = (
 		debug,
 	} = options;
 
+	if (typeof fn !== 'function') {
+		throw new Error('fn must be a function');
+	}
+
 	const storageTimeout = storageConfig.timeout > 0 ? Math.floor(storageConfig.timeout) : Infinity;
 	const sourceTimeout = sourceConfig.timeout > 0 ? Math.floor(sourceConfig.timeout) : Infinity;
 

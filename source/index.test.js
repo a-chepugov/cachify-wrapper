@@ -117,6 +117,10 @@ describe('cachify-wrapper', () => {
 		});
 	});
 
+	it('if fn is not a functtion throws an Error', () => {
+		expect(() => testee('not a function')).to.throw();
+	});
+
 	it('on second run wrapped function return previous result', () => {
 		let count = 0;
 		const fn = (a, cb) => cb(null, count++);
