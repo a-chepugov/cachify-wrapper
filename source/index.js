@@ -152,7 +152,17 @@ const callback = (
 	 */
 	function getWithLockFactory(...args) {
 		const cb = args.pop();
-		const key = hasher(args);
+		/**
+		* @ignore
+		* @type {K}
+		*/
+		let key;
+		try {
+			key = hasher(args);
+		} catch (error) {
+			console.error(error);
+			return fn.apply(this, arguments);
+		}
 
 		/**
 		 * @ignore

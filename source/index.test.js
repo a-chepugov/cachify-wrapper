@@ -378,6 +378,30 @@ describe('cachify-wrapper', () => {
 			const fn = (a, cb) => cb(null, a);
 			expect(() => testee(fn, undefined, {expire: 1000}, 'not a function')).to.throw();
 		});
+
+		it('call fn if hasher fails', () => {
+			let count = 0;
+
+			const fn = (cb) => cb(null, count++);
+			const hasher = () => {
+				throw new Error('ooops');
+			};
+
+			const fnCached = testee(fn, undefined, {expire: 1000}, hasher);
+			const fnPromisified = promisify(fnCached);
+
+			const ce = console.error;
+			console.error = new Function();
+
+			return Promise.resolve()
+				.then(() => fnPromisified())
+				.then(() => fnPromisified())
+				.then(() => fnPromisified())
+				.then(() => expect(count).to.be.equal(3))
+				.then(() => {
+					console.error = ce;
+				});
+		});
 	});
 
 	it('function will invoke again before using stale data', () => {
