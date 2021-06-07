@@ -122,7 +122,7 @@ const callback = (
 
 	const get = (Number.isFinite(storageTimeout) ? timeout(storage.get, storageTimeout) : storage.get).bind(storage);
 	const set = (Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.set).bind(storage);
-	const del = (Number.isFinite(storageTimeout) ? timeout(storage.set, storageTimeout) : storage.del).bind(storage);
+	const del = (Number.isFinite(storageTimeout) ? timeout(storage.del, storageTimeout) : storage.del).bind(storage);
 
 	/**
 	 * @ignore
