@@ -85,7 +85,7 @@ import { RecordPacked } from "./library/Record.js";
 /**
  * @typedef {Object} Options
  * @property {Object} [storage]
- * @property {number} [storage.timeout=Infinity] - max storage response time before considering it as failed, and invoking `fn`
+ * @property {number} [storage.timeout=1000] - max storage response time before considering it as failed, and invoking `fn`
  * @property {Object} [source]
  * @property {number} [source.timeout=Infinity] - max `fn` response time before considering it as failed
  * @property {number} [expire=1000] - time to consider cached data expired [in milliseconds]

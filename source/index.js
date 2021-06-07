@@ -72,7 +72,7 @@ const callback = (
 		throw new Error('fn must be a function');
 	}
 
-	const storageTimeout = storageConfig.timeout > 0 ? Math.floor(storageConfig.timeout) : Infinity;
+	const storageTimeout = storageConfig.timeout > 0 ? Math.floor(storageConfig.timeout) : 1000;
 	const sourceTimeout = sourceConfig.timeout > 0 ? Math.floor(sourceConfig.timeout) : Infinity;
 
 	expire = expire >= 0 ? Math.floor(expire) : 1000;
@@ -327,7 +327,7 @@ exports.promise = (fn, storage, options, hasher) => {
 /**
  * @typedef {Object} Options
  * @property {Object} [storage]
- * @property {number} [storage.timeout=Infinity] - max storage response time before considering it as failed, and invoking `fn`
+ * @property {number} [storage.timeout=1000] - max storage response time before considering it as failed, and invoking `fn`
  * @property {Object} [source]
  * @property {number} [source.timeout=Infinity] - max `fn` response time before considering it as failed
  * @property {number} [expire=1000] - time to consider cached data expired [in milliseconds]
