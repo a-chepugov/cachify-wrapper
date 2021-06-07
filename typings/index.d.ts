@@ -92,7 +92,7 @@ import { RecordPacked } from "./library/Record.js";
  * @property {number} [spread=expire/1000] - expire time spread (prevents simultaneous deletions saved items from storage)
  * @property {number} [lock=0] - lock timeout (prevents simultaneous concurrent invoke of `fn` at initial period)
  * @property {number} [stale] - additional ttl for stale data
- * @property {number} [ttl=expire+stale] - forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
+ * @property {number} [ttl=expire+spread+stale] - forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
  * @property {number} [retries=1] - number of storage requests passes before `fn` call
  * @property {number} [error] - ttl for erroneous state cache (prevents frequent call of `fn`)
  * @property {boolean} [debug] - debug activation flag
