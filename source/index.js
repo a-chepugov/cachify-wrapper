@@ -65,7 +65,7 @@ const callback = (
 		stale,
 		ttl,
 		error,
-		debug,
+		verbose = 1,
 	} = options;
 
 	if (typeof fn !== 'function') {
@@ -99,7 +99,10 @@ const callback = (
 	 * @param {...*} args
 	 * @return {void}
 	 */
-	const log = debug ? console.error : new Function();
+	const log = {
+		error: verbose > 0 ? console.error : new Function(),
+		info: verbose > 1 ? console.info : new Function(),
+	};
 
 	fn = Number.isFinite(sourceTimeout) ? timeout(fn, sourceTimeout) : fn;
 
@@ -138,7 +141,7 @@ const callback = (
 		 */
 		(error, packed) => {
 			if (error) {
-				log(error);
+				log.error(error);
 				return cb(error, Record.empty());
 			} else if (packed) {
 				return cb(null, Record.unpack(packed));
@@ -161,7 +164,7 @@ const callback = (
 		try {
 			key = hasher(args);
 		} catch (error) {
-			log(error);
+			log.error(error);
 			return fn.apply(this, arguments);
 		}
 
@@ -188,10 +191,10 @@ const callback = (
 							if (stale && !record.error && record.timestamp + staleTTL > Date.now()) {
 								return cb(null, record.value);
 							} else if (errorTTL) {
-								set(key, recordNew.pack(), errorTTL, (/** @ignore @type {Error} */ error) => error ? log(error) : undefined);
+								set(key, recordNew.pack(), errorTTL, (/** @ignore @type {Error} */ error, /** @ignore @type {*} */ result) => error ? log.error(error) : log.info(result));
 							}
 						} else {
-							set(key, recordNew.pack(), ttl + random(0, spread), (/** @ignore @type {Error} */ error) => error ? log(error) : undefined);
+							set(key, recordNew.pack(), ttl + random(0, spread), (/** @ignore @type {Error} */ error, /** @ignore @type {*} */ result) => error ? log.error(error) : log.info(result));
 						}
 						return cb(recordNew.error, recordNew.value);
 					};
@@ -338,7 +341,7 @@ exports.promise = (fn, storage, options, hasher) => {
  * @property {number} [ttl=expire+spread+stale] - forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
  * @property {number} [retries=1] - number of storage requests passes before `fn` call
  * @property {number} [error] - ttl for erroneous state cache (prevents frequent call of `fn`)
- * @property {boolean} [debug] - debug activation flag
+ * @property {number} [verbose=1] - verbosity flag
  */
 
 /**

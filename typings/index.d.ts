@@ -36,9 +36,9 @@ export type Options = {
      */
     error?: number;
     /**
-     * - debug activation flag
+     * - verbosity flag
      */
-    debug?: boolean;
+    verbose?: number;
 };
 /**
  * @example
@@ -95,7 +95,7 @@ import { RecordPacked } from "./library/Record.js";
  * @property {number} [ttl=expire+spread+stale] - forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
  * @property {number} [retries=1] - number of storage requests passes before `fn` call
  * @property {number} [error] - ttl for erroneous state cache (prevents frequent call of `fn`)
- * @property {boolean} [debug] - debug activation flag
+ * @property {number} [verbose=1] - verbosity flag
  */
 /**
  * @description no cache error

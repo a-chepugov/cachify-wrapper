@@ -92,7 +92,7 @@ Type: [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Globa
 *   `ttl` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** forced ttl (TimeToLive) for data (useful if storage is using from multiply services with different expire)
 *   `retries` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** number of storage requests passes before `fn` call
 *   `error` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** ttl for erroneous state cache (prevents frequent call of `fn`)
-*   `debug` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** debug activation flag
+*   `verbose` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)?** verbosity flag
 
 ### CacheAbsentError
 
