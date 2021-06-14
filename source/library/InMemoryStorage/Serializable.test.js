@@ -68,12 +68,14 @@ describe('Serializable', function() {
 			.expire(4, Infinity)
 			.export();
 
-		return sleep(100)()
+		return Promise.resolve()
+			.then(sleep(100))
 			.then(() => new Testee().import(dump))
 			.then((i) => {
 				expect(Array.from(i.keys()).length).to.equal(2);
-				return sleep(100)(i);
+				return i;
 			})
+			.then(sleep(100))
 			.then((i) => expect(Array.from(i.keys()).length).to.equal(1));
 	});
 });
