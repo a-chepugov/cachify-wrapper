@@ -387,20 +387,14 @@ describe('cachify-wrapper', () => {
 				throw new Error('ooops');
 			};
 
-			const fnCached = testee(fn, undefined, {expire: 1000}, hasher);
+			const fnCached = testee(fn, undefined, {expire: 1000, verbose: 0}, hasher);
 			const fnPromisified = promisify(fnCached);
-
-			const ce = console.error;
-			console.error = new Function();
 
 			return Promise.resolve()
 				.then(() => fnPromisified())
 				.then(() => fnPromisified())
 				.then(() => fnPromisified())
 				.then(() => expect(count).to.be.equal(3))
-				.then(() => {
-					console.error = ce;
-				});
 		});
 	});
 
@@ -738,7 +732,7 @@ describe('cachify-wrapper', () => {
 			const fn = (cb) => cb(null, count++);
 			const cache = new InMemoryStorageWithDelayedGet();
 
-			const fnCached = testee(fn, cache, {expire: 1000, storage: {timeout: 1}});
+			const fnCached = testee(fn, cache, {expire: 1000, storage: {timeout: 1}, verbose: 0});
 			const fnPromisified = promisify(fnCached);
 
 			return Promise.resolve()
@@ -762,7 +756,7 @@ describe('cachify-wrapper', () => {
 			const cache = new InMemoryStorageErrorReadWrapper();
 			let count = 0;
 			const fn = (cb) => cb(null, count++);
-			const fnCached = testee(fn, cache, {expire: 1000});
+			const fnCached = testee(fn, cache, {expire: 1000, verbose: 0});
 			const fnPromisified = promisify(fnCached);
 
 			return Promise.resolve()
@@ -786,7 +780,7 @@ describe('cachify-wrapper', () => {
 			const cache = new InMemoryStorageErrorWriteWrapper();
 			let count = 0;
 			const fn = (cb) => cb(null, count++);
-			const fnCached = testee(fn, cache, {expire: 1000});
+			const fnCached = testee(fn, cache, {expire: 1000, verbose: 0});
 			const fnPromisified = promisify(fnCached);
 
 			return Promise.resolve()
