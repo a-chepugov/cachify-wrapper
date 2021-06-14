@@ -154,9 +154,9 @@ const callback = (
 	function getWithLockFactory(...args) {
 		const cb = args.pop();
 		/**
-		* @ignore
-		* @type {K}
-		*/
+		 * @ignore
+		 * @type {K}
+		 */
 		let key;
 		try {
 			key = hasher(args);
@@ -188,10 +188,10 @@ const callback = (
 							if (stale && !record.error && record.timestamp + staleTTL > Date.now()) {
 								return cb(null, record.value);
 							} else if (errorTTL) {
-								set(key, recordNew.pack(), errorTTL, (error) => error ? log(error) : undefined);
+								set(key, recordNew.pack(), errorTTL, (/** @ignore @type {Error} */ error) => error ? log(error) : undefined);
 							}
 						} else {
-							set(key, recordNew.pack(), ttl + random(0, spread), (error) => error ? log(error) : undefined);
+							set(key, recordNew.pack(), ttl + random(0, spread), (/** @ignore @type {Error} */ error) => error ? log(error) : undefined);
 						}
 						return cb(recordNew.error, recordNew.value);
 					};
