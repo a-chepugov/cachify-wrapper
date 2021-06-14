@@ -67,22 +67,22 @@ class Record {
 	}
 
 	/**
-	 * @template V0
-	 * @return {Record<V0>}
+	 * @template V
+	 * @return {Record<V>}
 	 */
 	static empty() {
 		return new Record();
 	}
 
 	/**
-	 * @template V0
+	 * @template V
 	 * @param {Error} error
-	 * @return {Record<V0>}
+	 * @return {Record<V>}
 	 */
 	static error(error) {
 		/**
 		 * @ignore
-		 * @type {Record<V0>}
+		 * @type {Record<V>}
 		 */
 		const record = new Record();
 		record.error = error;
@@ -91,9 +91,9 @@ class Record {
 	}
 
 	/**
-	 * @template V0
-	 * @param {V0} value
-	 * @return {Record<V0>}
+	 * @template V
+	 * @param {V} value
+	 * @return {Record<V>}
 	 */
 	static of(value) {
 		const record = new Record();
@@ -103,9 +103,9 @@ class Record {
 	}
 
 	/**
-	 * @template V0
-	 * @param {RecordPacked<V0>} pack
-	 * @return {Record<V0>}
+	 * @template V
+	 * @param {RecordPacked<V>} pack
+	 * @return {Record<V>}
 	 */
 	static unpack(pack = {}) {
 		const record = new Record();

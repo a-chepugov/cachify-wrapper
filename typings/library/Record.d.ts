@@ -11,28 +11,28 @@ export type RecordPacked<V> = {
  */
 export class Record<V> {
     /**
-     * @template V0
-     * @return {Record<V0>}
+     * @template V
+     * @return {Record<V>}
      */
-    static empty<V0>(): Record<V0>;
+    static empty<V_1>(): Record<V_1>;
     /**
-     * @template V0
+     * @template V
      * @param {Error} error
-     * @return {Record<V0>}
+     * @return {Record<V>}
      */
-    static error<V0_1>(error: Error): Record<V0_1>;
+    static error<V_2>(error: Error): Record<V_2>;
     /**
-     * @template V0
-     * @param {V0} value
-     * @return {Record<V0>}
+     * @template V
+     * @param {V} value
+     * @return {Record<V>}
      */
-    static of<V0_2>(value: V0_2): Record<V0_2>;
+    static of<V_3>(value: V_3): Record<V_3>;
     /**
-     * @template V0
-     * @param {RecordPacked<V0>} pack
-     * @return {Record<V0>}
+     * @template V
+     * @param {RecordPacked<V>} pack
+     * @return {Record<V>}
      */
-    static unpack<V0_3>(pack?: RecordPacked<V0_3>): Record<V0_3>;
+    static unpack<V_4>(pack?: RecordPacked<V_4>): Record<V_4>;
     /**
      * @param {Error} value
      */
