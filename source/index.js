@@ -138,6 +138,7 @@ const callback = (
 		 */
 		(error, packed) => {
 			if (error) {
+				log(error);
 				return cb(error, Record.empty());
 			} else if (packed) {
 				return cb(null, Record.unpack(packed));
@@ -160,7 +161,7 @@ const callback = (
 		try {
 			key = hasher(args);
 		} catch (error) {
-			console.error(error);
+			log(error);
 			return fn.apply(this, arguments);
 		}
 
@@ -187,10 +188,10 @@ const callback = (
 							if (stale && !record.error && record.timestamp + staleTTL > Date.now()) {
 								return cb(null, record.value);
 							} else if (errorTTL) {
-								set(key, recordNew.pack(), errorTTL, log);
+								set(key, recordNew.pack(), errorTTL, (error) => error ? log(error) : undefined);
 							}
 						} else {
-							set(key, recordNew.pack(), ttl + random(0, spread), log);
+							set(key, recordNew.pack(), ttl + random(0, spread), (error) => error ? log(error) : undefined);
 						}
 						return cb(recordNew.error, recordNew.value);
 					};
